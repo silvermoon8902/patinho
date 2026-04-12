@@ -41,3 +41,7 @@ media_files/
 logs/
 *.log
 status.md
+
+# Celery runtime
+celerybeat-schedule
+celerybeat.pid
