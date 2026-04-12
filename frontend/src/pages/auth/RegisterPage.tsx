@@ -1,0 +1,169 @@
+import { useState, useEffect, FormEvent } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import duckLogo from "@/assets/duck-logo.png";
+
+export default function RegisterPage() {
+  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [phone, setPhone] = useState("");
+  const [validationError, setValidationError] = useState<string | null>(null);
+
+  const { register, isAuthenticated, loading, error, resetError } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/wallet", { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
+
+  useEffect(() => {
+    resetError();
+  }, []);
+
+  const validate = (): boolean => {
+    setValidationError(null);
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setValidationError("E-mail invalido");
+      return false;
+    }
+
+    if (username.length < 3) {
+      setValidationError("Nome de usuario deve ter pelo menos 3 caracteres");
+      return false;
+    }
+
+    if (password.length < 6) {
+      setValidationError("Senha deve ter pelo menos 6 caracteres");
+      return false;
+    }
+
+    if (password !== confirmPassword) {
+      setValidationError("As senhas nao coincidem");
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!validate()) return;
+
+    const data: {
+      email: string;
+      username: string;
+      password: string;
+      phone?: string;
+    } = { email, username, password };
+    if (phone.trim()) data.phone = phone.trim();
+
+    await register(data);
+  };
+
+  const displayError = validationError || error;
+
+  return (
+    <div className="auth-page">
+      <div className="auth-container">
+        <div className="auth-logo">
+          <img src={duckLogo} alt="Patinho" width={64} height={64} />
+          <h1 className="auth-title">Patinho</h1>
+          <p className="auth-subtitle">Apostas entre Amigos</p>
+        </div>
+
+        <form className="auth-form" onSubmit={handleSubmit}>
+          <h2>Criar conta</h2>
+
+          {displayError && (
+            <div className="alert alert-error">{displayError}</div>
+          )}
+
+          <div className="form-group">
+            <label htmlFor="email">E-mail</label>
+            <input
+              id="email"
+              type="email"
+              placeholder="seu@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              autoComplete="email"
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="username">Nome de usuario</label>
+            <input
+              id="username"
+              type="text"
+              placeholder="Escolha um nome"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+              minLength={3}
+              autoComplete="username"
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="password">Senha</label>
+            <input
+              id="password"
+              type="password"
+              placeholder="Minimo 6 caracteres"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={6}
+              autoComplete="new-password"
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="confirmPassword">Confirmar senha</label>
+            <input
+              id="confirmPassword"
+              type="password"
+              placeholder="Repita a senha"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+              autoComplete="new-password"
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="phone">Telefone (opcional)</label>
+            <input
+              id="phone"
+              type="tel"
+              placeholder="(11) 99999-9999"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              autoComplete="tel"
+            />
+          </div>
+
+          <button
+            type="submit"
+            className="btn btn-primary btn-full"
+            disabled={loading}
+          >
+            {loading ? "Criando conta..." : "Criar conta"}
+          </button>
+
+          <p className="auth-link">
+            Ja tem conta?{" "}
+            <Link to="/login">Entrar</Link>
+          </p>
+        </form>
+      </div>
+    </div>
+  );
+}
