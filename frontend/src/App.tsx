@@ -6,6 +6,10 @@ import LoginPage from "@/pages/auth/LoginPage";
 import RegisterPage from "@/pages/auth/RegisterPage";
 import DashboardPage from "@/pages/dashboard/DashboardPage";
 import WalletPage from "@/pages/wallet/WalletPage";
+import BetsListPage from "@/pages/bets/BetsListPage";
+import CreateBetPage from "@/pages/bets/CreateBetPage";
+import BetDetailPage from "@/pages/bets/BetDetailPage";
+import InvitePage from "@/pages/invite/InvitePage";
 
 function NotFound() {
   return (
@@ -25,6 +29,7 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/invite/:inviteToken" element={<InvitePage />} />
         <Route
           element={
             <ProtectedRoute>
@@ -33,6 +38,9 @@ export default function App() {
           }
         >
           <Route path="/" element={<DashboardPage />} />
+          <Route path="/bets" element={<BetsListPage />} />
+          <Route path="/bets/create" element={<CreateBetPage />} />
+          <Route path="/bets/:betId" element={<BetDetailPage />} />
           <Route path="/wallet" element={<WalletPage />} />
         </Route>
         <Route path="*" element={<NotFound />} />

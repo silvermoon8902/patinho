@@ -642,3 +642,899 @@ input::placeholder {
     max-width: 1320px;
   }
 }
+
+/* ================================================
+   WEEK 2 — Bets, Create Bet, Bet Detail, Invite, Chat
+   ================================================ */
+
+/* ===== Shared: page title ===== */
+.page-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-navy);
+}
+
+/* ===== Status badges ===== */
+.status-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.status-open {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.status-locked {
+  background-color: #fef9c3;
+  color: #854d0e;
+}
+
+.status-voting {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.status-disputed {
+  background-color: #ffedd5;
+  color: #9a3412;
+}
+
+.status-resolved {
+  background-color: var(--color-gray-200);
+  color: var(--color-gray-600);
+}
+
+.status-cancelled {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+/* ===== Category tags ===== */
+.category-tag {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  background-color: var(--color-gray-100);
+  color: var(--color-gray-600);
+}
+
+.category-football {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.category-f1 {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.category-tennis {
+  background-color: #fef9c3;
+  color: #854d0e;
+}
+
+.category-bbb {
+  background-color: #ede9fe;
+  color: #5b21b6;
+}
+
+.category-politics {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.category-custom {
+  background-color: var(--color-gray-100);
+  color: var(--color-gray-600);
+}
+
+/* ===== Tabs ===== */
+.bets-tabs {
+  display: flex;
+  gap: 4px;
+  background-color: var(--color-gray-100);
+  border-radius: var(--radius-sm);
+  padding: 4px;
+  margin-bottom: 16px;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 8px 12px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-gray-500);
+  background: none;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tab-btn:hover {
+  color: var(--color-navy);
+}
+
+.tab-active {
+  background-color: var(--color-white);
+  color: var(--color-navy);
+  box-shadow: var(--shadow);
+}
+
+/* ===== Form extras (textarea, select, datetime) ===== */
+.form-textarea,
+.form-select,
+.form-datetime {
+  width: 100%;
+  padding: 12px 16px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 1rem;
+  color: var(--color-navy);
+  background-color: var(--color-white);
+  border: 2px solid var(--color-gray-200);
+  border-radius: var(--radius-sm);
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  -webkit-appearance: none;
+}
+
+.form-textarea:focus,
+.form-select:focus,
+.form-datetime:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(255, 209, 13, 0.25);
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.form-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  padding-right: 40px;
+}
+
+.form-hint {
+  font-size: 0.85rem;
+  color: var(--color-gray-500);
+  margin-bottom: 12px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* ===== Bets list page ===== */
+.bets-list-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.bets-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.btn-create-bet {
+  padding: 8px 16px;
+  font-size: 0.85rem;
+}
+
+.bets-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bets-loading {
+  text-align: center;
+  padding: 32px 0;
+  color: var(--color-gray-400);
+  font-size: 0.9rem;
+}
+
+.bets-empty {
+  text-align: center;
+  padding: 40px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.bets-empty-text {
+  color: var(--color-gray-400);
+  font-size: 0.95rem;
+}
+
+/* ===== Bet card ===== */
+.bet-card {
+  display: block;
+  text-decoration: none;
+  color: var(--color-navy);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.bet-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.bet-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.bet-card-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+  line-height: 1.3;
+}
+
+.bet-card-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  border-top: 1px solid var(--color-gray-100);
+  padding-top: 12px;
+}
+
+.bet-stat {
+  text-align: center;
+}
+
+.bet-stat-label {
+  display: block;
+  font-size: 0.65rem;
+  color: var(--color-gray-400);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-bottom: 2px;
+}
+
+.bet-stat-value {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-navy);
+}
+
+/* ===== Create bet page ===== */
+.create-bet-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.create-bet-form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.create-bet-form h3 {
+  margin-bottom: 12px;
+}
+
+/* Step progress indicator */
+.step-progress {
+  display: flex;
+  justify-content: space-between;
+  position: relative;
+}
+
+.step-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  position: relative;
+}
+
+.step-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: var(--color-gray-200);
+  color: var(--color-gray-500);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+
+.step-active .step-circle {
+  background-color: var(--color-primary);
+  color: var(--color-navy);
+}
+
+.step-done .step-circle {
+  background-color: var(--color-navy);
+  color: var(--color-white);
+}
+
+.step-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--color-gray-400);
+  text-align: center;
+}
+
+.step-active .step-label {
+  color: var(--color-navy);
+}
+
+.step-done .step-label {
+  color: var(--color-navy);
+}
+
+/* Option rows in create form */
+.option-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.option-input-group {
+  flex: 1;
+}
+
+.btn-remove-option {
+  padding: 10px 12px;
+  font-size: 0.8rem;
+  margin-bottom: 16px;
+  white-space: nowrap;
+}
+
+/* Step navigation */
+.step-nav {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.step-nav .btn {
+  min-width: 120px;
+}
+
+/* Review section */
+.review-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.review-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--color-gray-100);
+}
+
+.review-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.review-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-gray-400);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.review-value {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--color-navy);
+}
+
+.review-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.review-option-tag {
+  display: inline-block;
+  padding: 4px 12px;
+  background-color: var(--color-gray-100);
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--color-navy);
+}
+
+/* ===== Bet detail page ===== */
+.bet-detail-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Hero */
+.bet-hero {
+  position: relative;
+}
+
+.bet-hero-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.bet-hero-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-navy);
+  margin-bottom: 4px;
+}
+
+.bet-hero-description {
+  font-size: 0.9rem;
+  color: var(--color-gray-500);
+  margin-bottom: 12px;
+  line-height: 1.4;
+}
+
+.bet-hero-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--color-gray-500);
+  margin-bottom: 8px;
+}
+
+.bet-meta-divider {
+  color: var(--color-gray-300);
+}
+
+.bet-timer {
+  display: inline-block;
+  padding: 4px 12px;
+  background-color: var(--color-primary);
+  color: var(--color-navy);
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+/* Options in detail */
+.bet-options h3,
+.bet-join h3,
+.bet-voting h3,
+.bet-participants h3 {
+  margin-bottom: 12px;
+}
+
+.options-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.option-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background-color: var(--color-gray-100);
+  border-radius: var(--radius-sm);
+  border: 2px solid transparent;
+  transition: border-color 0.2s ease;
+}
+
+.option-selected {
+  border-color: var(--color-primary);
+  background-color: #fffbeb;
+}
+
+.option-winner {
+  border-color: var(--color-success);
+  background-color: #f0fdf4;
+}
+
+.option-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.option-text {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-navy);
+}
+
+.option-count {
+  font-size: 0.75rem;
+  color: var(--color-gray-400);
+}
+
+.option-your-pick {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--color-primary-hover);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.option-winner-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--color-success);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+/* Join section */
+.bet-join {
+  border: 2px solid var(--color-primary);
+}
+
+/* Voting */
+.voting-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.voting-btn {
+  text-align: left;
+  justify-content: flex-start;
+}
+
+/* Participants */
+.participants-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.participant-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-gray-100);
+}
+
+.participant-item:last-child {
+  border-bottom: none;
+}
+
+.participant-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-navy);
+}
+
+.participant-amount {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--color-navy);
+}
+
+/* ===== Invite page ===== */
+.invite-page {
+  min-height: 100vh;
+  background-color: var(--color-bg);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 24px 16px;
+}
+
+.invite-container {
+  width: 100%;
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.invite-brand {
+  text-align: center;
+}
+
+.invite-brand-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--color-navy);
+}
+
+.invite-brand-sub {
+  font-size: 0.9rem;
+  color: var(--color-gray-500);
+  margin-top: 2px;
+}
+
+.invite-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.invite-bet-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--color-navy);
+}
+
+.invite-bet-desc {
+  font-size: 0.9rem;
+  color: var(--color-gray-500);
+  line-height: 1.4;
+}
+
+.invite-details {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-gray-100);
+}
+
+.invite-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.invite-detail-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-gray-400);
+}
+
+.invite-detail-value {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-navy);
+  text-align: right;
+}
+
+.invite-options-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+.invite-error-text {
+  font-size: 0.9rem;
+  color: var(--color-gray-500);
+  margin-bottom: 16px;
+}
+
+.invite-action {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.invite-action h3 {
+  margin-bottom: 4px;
+}
+
+.invite-action-text {
+  font-size: 0.9rem;
+  color: var(--color-gray-500);
+  text-align: center;
+}
+
+/* ===== Chat window ===== */
+.chat-window {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  height: 400px;
+}
+
+.chat-header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-gray-100);
+  flex-shrink: 0;
+}
+
+.chat-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-navy);
+}
+
+.chat-status {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.chat-online {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.chat-offline {
+  background-color: var(--color-gray-100);
+  color: var(--color-gray-500);
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chat-empty {
+  text-align: center;
+  color: var(--color-gray-400);
+  font-size: 0.85rem;
+  padding: 40px 0;
+}
+
+.chat-message {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  max-width: 80%;
+}
+
+.chat-message-own {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+
+.chat-message-username {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--color-gray-400);
+  margin-bottom: 2px;
+  padding-left: 8px;
+}
+
+.chat-bubble {
+  padding: 8px 12px;
+  border-radius: 16px;
+  background-color: var(--color-gray-100);
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 6px;
+  max-width: 100%;
+}
+
+.chat-message-own .chat-bubble {
+  background-color: var(--color-primary);
+}
+
+.chat-bubble-text {
+  font-size: 0.875rem;
+  color: var(--color-navy);
+  word-break: break-word;
+}
+
+.chat-bubble-time {
+  font-size: 0.6rem;
+  color: var(--color-gray-400);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.chat-message-own .chat-bubble-time {
+  color: var(--color-navy);
+  opacity: 0.6;
+}
+
+.chat-message-system {
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--color-gray-400);
+  font-style: italic;
+  padding: 4px 0;
+}
+
+.chat-input-bar {
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--color-gray-100);
+  flex-shrink: 0;
+}
+
+.chat-input {
+  flex: 1;
+  padding: 10px 14px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.875rem;
+  color: var(--color-navy);
+  background-color: var(--color-gray-100);
+  border: none;
+  border-radius: 20px;
+  outline: none;
+}
+
+.chat-input:focus {
+  box-shadow: none;
+  background-color: var(--color-gray-200);
+}
+
+.chat-send-btn {
+  padding: 8px 16px;
+  font-size: 0.8rem;
+  border-radius: 20px;
+}
+
+/* ===== Week 2 responsive — Tablet ===== */
+@media (min-width: 768px) {
+  .bets-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .bet-card-stats {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+
+  .step-progress {
+    max-width: 400px;
+    margin: 0 auto;
+  }
+
+  .chat-window {
+    height: 500px;
+  }
+}
+
+/* ===== Week 2 responsive — Desktop ===== */
+@media (min-width: 1024px) {
+  .bets-grid {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+
+  .bet-detail-page {
+    max-width: 700px;
+    margin: 0 auto;
+  }
+
+  .invite-container {
+    max-width: 480px;
+  }
+}

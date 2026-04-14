@@ -1,0 +1,173 @@
+import json
+import logging
+
+import httpx
+from redis.asyncio import Redis
+
+from app.config import settings
+
+logger = logging.getLogger(__name__)
+
+API_FOOTBALL_BASE_URL = "https://v3.football.api-sports.io"
+
+SUPPORTED_LEAGUES: dict[str, int] = {
+    "brasileirao": 71,
+    "libertadores": 13,
+    "champions_league": 2,
+    "premier_league": 39,
+    "copa_do_brasil": 73,
+    "copa_sulamericana": 14,
+    "copa_do_mundo": 1,
+}
+
+CACHE_TTL_SECONDS = 180  # 3 minutes
+
+
+class APIFootballClient:
+    def __init__(self) -> None:
+        self.api_key = settings.API_FOOTBALL_KEY
+        self.base_url = API_FOOTBALL_BASE_URL
+        self._redis: Redis | None = None
+
+    async def _get_redis(self) -> Redis:
+        if self._redis is None:
+            self._redis = Redis.from_url(settings.REDIS_URL, decode_responses=True)
+        return self._redis
+
+    @property
+    def _headers(self) -> dict[str, str]:
+        return {
+            "x-apisports-key": self.api_key,
+            "Content-Type": "application/json",
+        }
+
+    async def _cached_get(self, cache_key: str, url: str, params: dict) -> dict | None:
+        """GET with Redis cache. Returns parsed JSON or None on failure."""
+        redis = await self._get_redis()
+
+        # Check cache
+        cached = await redis.get(cache_key)
+        if cached:
+            return json.loads(cached)
+
+        if not self.api_key:
+            logger.warning("API-Football key not configured")
+            return None
+
+        try:
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                response = await client.get(url, headers=self._headers, params=params)
+
+            if response.status_code != 200:
+                logger.error(
+                    "API-Football request failed: %s %s",
+                    response.status_code,
+                    response.text[:200],
+                )
+                return None
+
+            data = response.json()
+
+            # Cache result
+            await redis.set(cache_key, json.dumps(data), ex=CACHE_TTL_SECONDS)
+            return data
+        except httpx.TimeoutException:
+            logger.error("API-Football request timed out: %s", url)
+            return None
+        except Exception:
+            logger.exception("API-Football request error")
+            return None
+
+    async def get_fixtures(self, fixture_ids: list[str]) -> list[dict]:
+        """
+        Fetch multiple fixtures by ID.
+        GET /v3/fixtures?ids=123-456-789 (dash-separated for batch).
+        """
+        if not fixture_ids:
+            return []
+
+        ids_param = "-".join(str(fid) for fid in fixture_ids)
+        cache_key = f"apifootball:fixtures:{ids_param}"
+
+        data = await self._cached_get(
+            cache_key,
+            f"{self.base_url}/fixtures",
+            {"ids": ids_param},
+        )
+
+        if not data:
+            return []
+
+        return data.get("response", [])
+
+    async def search_fixtures(self, league_id: int, date: str) -> list[dict]:
+        """
+        Search upcoming fixtures for a league on a given date.
+        date format: YYYY-MM-DD
+        """
+        cache_key = f"apifootball:search:{league_id}:{date}"
+
+        data = await self._cached_get(
+            cache_key,
+            f"{self.base_url}/fixtures",
+            {"league": str(league_id), "date": date, "season": "2026"},
+        )
+
+        if not data:
+            return []
+
+        return data.get("response", [])
+
+    async def get_fixture_result(self, fixture_id: str) -> dict | None:
+        """
+        Get the result of a single fixture.
+        Returns {home_score, away_score, status, winner} or None if not finished.
+
+        winner values: "Home", "Draw", "Away"
+        """
+        fixtures = await self.get_fixtures([fixture_id])
+        if not fixtures:
+            return None
+
+        fixture = fixtures[0]
+        fixture_data = fixture.get("fixture", {})
+        status_data = fixture_data.get("status", {})
+        short_status = status_data.get("short", "")
+
+        # Match is not finished
+        finished_statuses = {"FT", "AET", "PEN"}
+        if short_status not in finished_statuses:
+            return None
+
+        goals = fixture.get("goals", {})
+        home_score = goals.get("home", 0) or 0
+        away_score = goals.get("away", 0) or 0
+
+        if home_score > away_score:
+            winner = "Home"
+        elif away_score > home_score:
+            winner = "Away"
+        else:
+            winner = "Draw"
+
+        teams = fixture.get("teams", {})
+        home_team = teams.get("home", {}).get("name", "Home")
+        away_team = teams.get("away", {}).get("name", "Away")
+
+        return {
+            "home_score": home_score,
+            "away_score": away_score,
+            "status": short_status,
+            "winner": winner,
+            "home_team": home_team,
+            "away_team": away_team,
+        }
+
+    async def close(self) -> None:
+        if self._redis:
+            await self._redis.close()
+            self._redis = None
+
+
+# Module-level singleton
+api_football_client = APIFootballClient()

@@ -12,6 +12,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Startup
     yield
     # Shutdown
+    from app.api.websocket.manager import manager
+    await manager.close()
 
 
 app = FastAPI(
@@ -64,6 +66,14 @@ for module_path, attr_name, prefix in _routers:
         logger.info("Loaded router: %s → %s", module_path, prefix)
     except Exception as e:
         logger.error("Failed to load router %s: %s", module_path, e)
+
+# Mount WebSocket router at root level (no prefix)
+try:
+    from app.api.v1.chat import ws_router as chat_ws_router
+    app.include_router(chat_ws_router)
+    logger.info("Loaded WebSocket router: /ws/chat")
+except Exception as e:
+    logger.error("Failed to load WebSocket chat router: %s", e)
 
 
 @app.get("/api/health")

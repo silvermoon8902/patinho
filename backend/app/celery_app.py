@@ -32,6 +32,10 @@ celery_app.conf.update(
             "task": "app.tasks.payments.expire_pending_payments",
             "schedule": 900.0,  # every 15 minutes
         },
+        "lock_expired_bets": {
+            "task": "app.tasks.betting.lock_expired_bets",
+            "schedule": 60.0,  # every 1 minute
+        },
         "reset_weekly_ranking": {
             "task": "app.tasks.ranking.reset_weekly_ranking",
             "schedule": crontab(minute="0", hour="0", day_of_week="1"),  # Monday 00:00
