@@ -1,9 +1,3 @@
-import duckLogo from "@/assets/duck-logo.png";
-
-export function DuckLogo({ size = 32 }: { size?: number }) {
-  return <img src={duckLogo} alt="Patinho" width={size} height={size} />;
-}
-
 export function HomeIcon({ size = 24 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

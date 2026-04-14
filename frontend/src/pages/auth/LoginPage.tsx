@@ -1,7 +1,7 @@
 import { useState, useEffect, FormEvent } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import duckLogo from "@/assets/duck-logo.png";
+import patinhoLogo from "@/assets/patinho-logo.png";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -31,8 +31,7 @@ export default function LoginPage() {
     <div className="auth-page">
       <div className="auth-container">
         <div className="auth-logo">
-          <img src={duckLogo} alt="Patinho" width={64} height={64} />
-          <h1 className="auth-title">Patinho</h1>
+          <img src={patinhoLogo} alt="Patinho" className="auth-logo-image" />
           <p className="auth-subtitle">Apostas entre Amigos</p>
         </div>
 

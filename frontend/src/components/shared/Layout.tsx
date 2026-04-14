@@ -1,13 +1,13 @@
 import { NavLink, Outlet } from "react-router-dom";
-import { DuckLogo, HomeIcon, DiceIcon, WalletIcon, TrophyIcon, UserIcon } from "./Icons";
+import { HomeIcon, DiceIcon, WalletIcon, TrophyIcon, UserIcon } from "./Icons";
+import patinhoLogo from "@/assets/patinho-logo.png";
 
 export default function Layout() {
   return (
     <div className="layout">
       <header className="header">
         <div className="header-content">
-          <DuckLogo size={48} />
-          <span className="logo-text">Patinho</span>
+          <img src={patinhoLogo} alt="Patinho" className="logo-image" />
         </div>
       </header>
 

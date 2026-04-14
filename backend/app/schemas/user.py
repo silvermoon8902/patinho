@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import BaseModel, Field
 
@@ -8,7 +8,8 @@ class UserResponse(BaseModel):
     id: uuid.UUID
     email: str
     username: str
-    phone: str | None
+    phone: str
+    birth_date: date | None
     is_admin: bool
     total_points: int
     created_at: datetime

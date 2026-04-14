@@ -18,7 +18,7 @@ class DepositRequest(BaseModel):
 
 
 class WithdrawalRequest(BaseModel):
-    amount: Decimal = Field(gt=0)
+    amount: Decimal = Field(ge=20, description="Valor minimo para saque: R$ 20,00")
     pix_key: str
 
 

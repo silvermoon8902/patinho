@@ -43,6 +43,7 @@ async def register_user(db: AsyncSession, user_data: UserRegister) -> User:
         username=user_data.username,
         hashed_password=hash_password(user_data.password),
         phone=user_data.phone,
+        birth_date=user_data.birth_date,
     )
     db.add(user)
     await db.flush()

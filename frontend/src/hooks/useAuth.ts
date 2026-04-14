@@ -28,7 +28,8 @@ export function useAuth() {
     email: string;
     username: string;
     password: string;
-    phone?: string;
+    phone: string;
+    birth_date: string;
   }) => {
     const result = await dispatch(registerThunk(data));
     if (registerThunk.fulfilled.match(result)) {

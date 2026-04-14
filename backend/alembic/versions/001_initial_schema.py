@@ -221,7 +221,7 @@ def upgrade() -> None:
     op.execute(
         """
         INSERT INTO platform_config (key, value, updated_at)
-        VALUES ('default_fee', '{"fee_type": "percent", "fee_value": 10}', NOW())
+        VALUES ('default_fee', '{"fee_type": "percent", "fee_value": 8}', NOW())
         """
     )
 

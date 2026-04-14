@@ -14,10 +14,11 @@ class User(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
-    phone: Mapped[str | None] = mapped_column(String(20))
+    phone: Mapped[str] = mapped_column(String(20))
     cpf: Mapped[str | None] = mapped_column(String(14))
     username: Mapped[str] = mapped_column(String(50), unique=True, index=True)
     hashed_password: Mapped[str] = mapped_column(String(255))
+    birth_date: Mapped[datetime | None] = mapped_column(DateTime)
     is_admin: Mapped[bool] = mapped_column(default=False)
     is_active: Mapped[bool] = mapped_column(default=True)
     total_points: Mapped[int] = mapped_column(default=0)

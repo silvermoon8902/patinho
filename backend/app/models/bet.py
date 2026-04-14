@@ -43,7 +43,7 @@ class Bet(Base):
         default=BetStatus.OPEN,
     )
     min_entry: Mapped[Decimal] = mapped_column(
-        Numeric(12, 2), default=1, server_default="1"
+        Numeric(12, 2), default=5, server_default="5"
     )
     max_entry: Mapped[Decimal] = mapped_column(
         Numeric(12, 2), default=1000, server_default="1000"
