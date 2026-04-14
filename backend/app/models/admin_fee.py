@@ -24,7 +24,7 @@ class AdminFee(Base):
         ForeignKey("bets.id"), unique=True
     )
     fee_type: Mapped[FeeType] = mapped_column(
-        Enum(FeeType, name="feetype", create_constraint=True)
+        Enum(FeeType, name="feetype", values_callable=lambda x: [e.value for e in x])
     )
     fee_value: Mapped[Decimal] = mapped_column(Numeric(12, 2))
     amount: Mapped[Decimal] = mapped_column(Numeric(12, 2))

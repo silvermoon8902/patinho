@@ -1,19 +1,28 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import apiClient from "@/api/client";
 
+function extractError(error: unknown, fallback: string): string {
+  const err = error as { response?: { data?: { detail?: unknown } } };
+  const detail = err.response?.data?.detail;
+  if (!detail) return fallback;
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail)) return detail.map((d: { msg?: string }) => d.msg || "").join(", ") || fallback;
+  return fallback;
+}
+
 export interface BetOption {
   id: string;
-  text: string;
-  participant_count: number;
+  label: string;
+  is_winner: boolean;
 }
 
 export interface BetParticipant {
   id: string;
   user_id: string;
   username: string;
-  option_id: string;
+  bet_option_id: string;
   amount: number;
-  joined_at: string;
+  prize_amount: number | null;
 }
 
 export interface BetResponse {
@@ -22,20 +31,18 @@ export interface BetResponse {
   description?: string;
   category: string;
   status: "open" | "locked" | "voting" | "disputed" | "resolved" | "cancelled";
-  resolution_type: "auto" | "voting";
+  resolution_type: "auto_api" | "voting";
   min_entry: number;
   max_entry: number;
   max_participants: number;
   closes_at: string;
+  resolved_at?: string;
   created_at: string;
   creator_id: string;
-  creator_username: string;
   invite_token: string;
   options: BetOption[];
-  participants: BetParticipant[];
-  total_pot: number;
-  participant_count: number;
-  winning_option_id?: string;
+  current_participants: number;
+  participations?: BetParticipant[];
 }
 
 interface CreateBetPayload {
@@ -83,10 +90,7 @@ export const fetchMyBets = createAsyncThunk(
       const response = await apiClient.get(`/bets${params}`);
       return response.data;
     } catch (error: unknown) {
-      const err = error as { response?: { data?: { detail?: string } } };
-      return rejectWithValue(
-        err.response?.data?.detail || "Erro ao carregar apostas"
-      );
+      return rejectWithValue(extractError(error, "Erro ao carregar apostas"));
     }
   }
 );
@@ -98,10 +102,7 @@ export const fetchBetDetail = createAsyncThunk(
       const response = await apiClient.get(`/bets/${betId}`);
       return response.data;
     } catch (error: unknown) {
-      const err = error as { response?: { data?: { detail?: string } } };
-      return rejectWithValue(
-        err.response?.data?.detail || "Erro ao carregar aposta"
-      );
+      return rejectWithValue(extractError(error, "Erro ao carregar aposta"));
     }
   }
 );
@@ -113,10 +114,7 @@ export const fetchBetByInvite = createAsyncThunk(
       const response = await apiClient.get(`/bets/invite/${inviteToken}`);
       return response.data;
     } catch (error: unknown) {
-      const err = error as { response?: { data?: { detail?: string } } };
-      return rejectWithValue(
-        err.response?.data?.detail || "Erro ao carregar convite"
-      );
+      return rejectWithValue(extractError(error, "Erro ao carregar convite"));
     }
   }
 );
@@ -128,10 +126,7 @@ export const createBet = createAsyncThunk(
       const response = await apiClient.post("/bets", data);
       return response.data;
     } catch (error: unknown) {
-      const err = error as { response?: { data?: { detail?: string } } };
-      return rejectWithValue(
-        err.response?.data?.detail || "Erro ao criar aposta"
-      );
+      return rejectWithValue(extractError(error, "Erro ao criar aposta"));
     }
   }
 );
@@ -141,15 +136,12 @@ export const joinBet = createAsyncThunk(
   async ({ betId, optionId, amount }: JoinBetPayload, { rejectWithValue }) => {
     try {
       const response = await apiClient.post(`/bets/${betId}/join`, {
-        option_id: optionId,
+        bet_option_id: optionId,
         amount,
       });
       return response.data;
     } catch (error: unknown) {
-      const err = error as { response?: { data?: { detail?: string } } };
-      return rejectWithValue(
-        err.response?.data?.detail || "Erro ao entrar na aposta"
-      );
+      return rejectWithValue(extractError(error, "Erro ao entrar na aposta"));
     }
   }
 );
@@ -159,14 +151,11 @@ export const castVote = createAsyncThunk(
   async ({ betId, optionId }: CastVotePayload, { rejectWithValue }) => {
     try {
       const response = await apiClient.post(`/bets/${betId}/vote`, {
-        option_id: optionId,
+        bet_option_id: optionId,
       });
       return response.data;
     } catch (error: unknown) {
-      const err = error as { response?: { data?: { detail?: string } } };
-      return rejectWithValue(
-        err.response?.data?.detail || "Erro ao votar"
-      );
+      return rejectWithValue(extractError(error, "Erro ao votar"));
     }
   }
 );

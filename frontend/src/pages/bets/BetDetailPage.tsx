@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch, RootState } from "@/store";
 import { fetchBetDetail, joinBet, castVote, clearBetError } from "@/store/betSlice";
 import { fetchMessages, clearChat } from "@/store/chatSlice";
 import { useWebSocket } from "@/hooks/useWebSocket";
+import { useToast } from "@/components/shared/Toast";
 import ChatWindow from "@/components/chat/ChatWindow";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -57,6 +58,8 @@ export default function BetDetailPage() {
   const [amount, setAmount] = useState(5);
   const [activeSection, setActiveSection] = useState<"details" | "chat">("details");
 
+  const navigate = useNavigate();
+  const { showToast } = useToast();
   const { messages, sendMessage, connected } = useWebSocket(betId);
 
   useEffect(() => {
@@ -70,20 +73,41 @@ export default function BetDetailPage() {
     };
   }, [dispatch, betId]);
 
-  const userParticipation = currentBet?.participants.find(
+  useEffect(() => {
+    if (error) {
+      if (error.toLowerCase().includes("saldo insuficiente")) {
+        showToast("Saldo insuficiente. Redirecionando para deposito...", "error");
+        dispatch(clearBetError());
+        setTimeout(() => navigate("/wallet"), 1500);
+      } else {
+        showToast(error, "error");
+        dispatch(clearBetError());
+      }
+    }
+  }, [error, showToast, dispatch, navigate]);
+
+  const userParticipation = currentBet?.participations?.find(
     (p) => p.user_id === user?.id
   );
 
   const handleJoin = async () => {
     if (!betId || !selectedOption) return;
-    await dispatch(
+    const result = await dispatch(
       joinBet({ betId, optionId: selectedOption, amount })
     );
+    if (joinBet.fulfilled.match(result)) {
+      showToast("Voce entrou na aposta!", "success");
+      dispatch(fetchBetDetail(betId));
+    }
   };
 
   const handleVote = async (optionId: string) => {
     if (!betId) return;
-    await dispatch(castVote({ betId, optionId }));
+    const result = await dispatch(castVote({ betId, optionId }));
+    if (castVote.fulfilled.match(result)) {
+      showToast("Voto registrado!", "success");
+      dispatch(fetchBetDetail(betId));
+    }
   };
 
   if (loading && !currentBet) {
@@ -122,19 +146,17 @@ export default function BetDetailPage() {
         )}
         <div className="bet-hero-meta">
           <span className="bet-meta-item">
-            {currentBet.participant_count} participante{currentBet.participant_count !== 1 ? "s" : ""}
+            {currentBet.current_participants} participante{currentBet.current_participants !== 1 ? "s" : ""}
           </span>
           <span className="bet-meta-divider">|</span>
           <span className="bet-meta-item">
-            Pote: {formatCurrency(currentBet.total_pot)}
+            Pote: {formatCurrency((currentBet.participations || []).reduce((sum, p) => sum + p.amount, 0))}
           </span>
         </div>
         <div className="bet-timer">
           {getTimeRemaining(currentBet.closes_at)}
         </div>
       </div>
-
-      {error && <div className="alert alert-error">{error}</div>}
 
       {/* Section tabs */}
       <div className="bets-tabs">
@@ -159,8 +181,8 @@ export default function BetDetailPage() {
             <h3>Opcoes</h3>
             <div className="options-list">
               {currentBet.options.map((option) => {
-                const isUserPick = userParticipation?.option_id === option.id;
-                const isWinner = currentBet.winning_option_id === option.id;
+                const isUserPick = userParticipation?.bet_option_id === option.id;
+                const isWinner = option.is_winner;
                 return (
                   <div
                     key={option.id}
@@ -169,9 +191,9 @@ export default function BetDetailPage() {
                     }`}
                   >
                     <div className="option-info">
-                      <span className="option-text">{option.text}</span>
+                      <span className="option-text">{option.label}</span>
                       <span className="option-count">
-                        {option.participant_count} participante{option.participant_count !== 1 ? "s" : ""}
+                        {(currentBet.participations || []).filter(p => p.bet_option_id === option.id).length} participante{(currentBet.participations || []).filter(p => p.bet_option_id === option.id).length !== 1 ? "s" : ""}
                       </span>
                     </div>
                     {isUserPick && (
@@ -200,7 +222,7 @@ export default function BetDetailPage() {
                   <option value="">Selecione...</option>
                   {currentBet.options.map((opt) => (
                     <option key={opt.id} value={opt.id}>
-                      {opt.text}
+                      {opt.label}
                     </option>
                   ))}
                 </select>
@@ -242,7 +264,7 @@ export default function BetDetailPage() {
                     onClick={() => handleVote(option.id)}
                     disabled={loading}
                   >
-                    {option.text}
+                    {option.label}
                   </button>
                 ))}
               </div>
@@ -251,12 +273,12 @@ export default function BetDetailPage() {
 
           {/* Participants section */}
           <div className="bet-participants card">
-            <h3>Participantes ({currentBet.participant_count})</h3>
-            {currentBet.participants.length === 0 && (
+            <h3>Participantes ({currentBet.current_participants})</h3>
+            {(currentBet.participations || []).length === 0 && (
               <p className="empty-state">Nenhum participante ainda</p>
             )}
             <div className="participants-list">
-              {currentBet.participants.map((p) => (
+              {(currentBet.participations || []).map((p) => (
                 <div key={p.id} className="participant-item">
                   <span className="participant-name">{p.username}</span>
                   <span className="participant-amount">

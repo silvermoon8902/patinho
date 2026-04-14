@@ -43,7 +43,7 @@ async def lock_funds(
     if wallet.balance < amount:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Insufficient balance",
+            detail="Saldo insuficiente",
         )
 
     wallet.balance -= amount
@@ -147,7 +147,7 @@ async def process_withdrawal(
     if wallet.balance < amount:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Insufficient balance",
+            detail="Saldo insuficiente",
         )
 
     wallet.balance -= amount

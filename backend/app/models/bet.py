@@ -36,10 +36,10 @@ class Bet(Base):
     invite_token: Mapped[str] = mapped_column(String(32), unique=True, index=True)
     category: Mapped[str] = mapped_column(String(50))
     resolution_type: Mapped[ResolutionType] = mapped_column(
-        Enum(ResolutionType, name="resolutiontype", create_constraint=True)
+        Enum(ResolutionType, name="resolutiontype", values_callable=lambda x: [e.value for e in x])
     )
     status: Mapped[BetStatus] = mapped_column(
-        Enum(BetStatus, name="betstatus", create_constraint=True),
+        Enum(BetStatus, name="betstatus", values_callable=lambda x: [e.value for e in x]),
         default=BetStatus.OPEN,
     )
     min_entry: Mapped[Decimal] = mapped_column(

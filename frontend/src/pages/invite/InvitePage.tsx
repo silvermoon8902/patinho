@@ -89,7 +89,7 @@ export default function InvitePage() {
     );
   }
 
-  const userAlreadyJoined = currentBet.participants.some(
+  const userAlreadyJoined = (currentBet.participations || []).some(
     (p) => p.user_id === user?.id
   );
 
@@ -119,7 +119,7 @@ export default function InvitePage() {
               <div className="invite-options-list">
                 {currentBet.options.map((opt) => (
                   <span key={opt.id} className="review-option-tag">
-                    {opt.text}
+                    {opt.label}
                   </span>
                 ))}
               </div>
@@ -127,13 +127,13 @@ export default function InvitePage() {
             <div className="invite-detail-row">
               <span className="invite-detail-label">Participantes</span>
               <span className="invite-detail-value">
-                {currentBet.participant_count}
+                {currentBet.current_participants}
               </span>
             </div>
             <div className="invite-detail-row">
               <span className="invite-detail-label">Pote atual</span>
               <span className="invite-detail-value">
-                {formatCurrency(currentBet.total_pot)}
+                {formatCurrency((currentBet.participations || []).reduce((sum, p) => sum + p.amount, 0))}
               </span>
             </div>
             <div className="invite-detail-row">
@@ -198,7 +198,7 @@ export default function InvitePage() {
                 <option value="">Selecione...</option>
                 {currentBet.options.map((opt) => (
                   <option key={opt.id} value={opt.id}>
-                    {opt.text}
+                    {opt.label}
                   </option>
                 ))}
               </select>

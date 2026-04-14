@@ -58,11 +58,11 @@ export default function BetCard({ bet }: BetCardProps) {
       <div className="bet-card-stats">
         <div className="bet-stat">
           <span className="bet-stat-label">Participantes</span>
-          <span className="bet-stat-value">{bet.participant_count}</span>
+          <span className="bet-stat-value">{bet.current_participants}</span>
         </div>
         <div className="bet-stat">
           <span className="bet-stat-label">Pote total</span>
-          <span className="bet-stat-value">{formatCurrency(bet.total_pot)}</span>
+          <span className="bet-stat-value">{formatCurrency((bet.participations || []).reduce((sum, p) => sum + p.amount, 0))}</span>
         </div>
         <div className="bet-stat">
           <span className="bet-stat-label">Encerra em</span>

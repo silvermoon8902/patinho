@@ -185,6 +185,56 @@ input::placeholder {
   border: 1px solid #bbf7d0;
 }
 
+/* ===== Toast notifications ===== */
+.toast-container {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 420px;
+  width: calc(100% - 32px);
+  pointer-events: none;
+}
+
+.toast {
+  padding: 14px 18px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  font-family: 'Poppins', sans-serif;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  pointer-events: auto;
+  cursor: pointer;
+  animation: toastIn 0.3s ease;
+}
+
+.toast-error {
+  background-color: var(--color-navy);
+  color: var(--color-white);
+  border-left: 4px solid var(--color-error);
+}
+
+.toast-success {
+  background-color: var(--color-navy);
+  color: var(--color-white);
+  border-left: 4px solid var(--color-success);
+}
+
+.toast-info {
+  background-color: var(--color-navy);
+  color: var(--color-white);
+  border-left: 4px solid var(--color-primary);
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(-12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 /* ===== Layout ===== */
 .layout {
   min-height: 100vh;
@@ -333,6 +383,34 @@ input::placeholder {
 
 .auth-link a:hover {
   color: var(--color-navy-light);
+}
+
+.birth-date-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+}
+
+.birth-date-row select {
+  width: 100%;
+  padding: 12px 10px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.95rem;
+  color: var(--color-navy);
+  background-color: var(--color-white);
+  border: 2px solid var(--color-gray-200);
+  border-radius: var(--radius-sm);
+  outline: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%239ca3af' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  cursor: pointer;
+}
+
+.birth-date-row select:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(255, 209, 13, 0.25);
 }
 
 /* ===== Dashboard ===== */

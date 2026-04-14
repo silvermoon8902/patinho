@@ -27,7 +27,7 @@ class Payment(Base):
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
     amount: Mapped[Decimal] = mapped_column(Numeric(12, 2))
     status: Mapped[PaymentStatus] = mapped_column(
-        Enum(PaymentStatus, name="paymentstatus", create_constraint=True),
+        Enum(PaymentStatus, name="paymentstatus", values_callable=lambda x: [e.value for e in x]),
         default=PaymentStatus.PENDING,
     )
     mp_payment_id: Mapped[str | None] = mapped_column(String(100))

@@ -27,7 +27,7 @@ class WalletTransaction(Base):
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     wallet_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("wallets.id"))
     type: Mapped[TransactionType] = mapped_column(
-        Enum(TransactionType, name="transactiontype", create_constraint=True)
+        Enum(TransactionType, name="transactiontype", values_callable=lambda x: [e.value for e in x])
     )
     amount: Mapped[Decimal] = mapped_column(Numeric(12, 2))
     balance_before: Mapped[Decimal] = mapped_column(Numeric(12, 2))
