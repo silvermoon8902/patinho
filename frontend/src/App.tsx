@@ -11,6 +11,7 @@ import CreateBetPage from "@/pages/bets/CreateBetPage";
 import BetDetailPage from "@/pages/bets/BetDetailPage";
 import InvitePage from "@/pages/invite/InvitePage";
 import RankingPage from "@/pages/ranking/RankingPage";
+import ProfilePage from "@/pages/profile/ProfilePage";
 import AdminDashboardPage from "@/pages/admin/AdminDashboardPage";
 import AdminUsersPage from "@/pages/admin/AdminUsersPage";
 import AdminBetsPage from "@/pages/admin/AdminBetsPage";
@@ -57,6 +58,7 @@ export default function App() {
           <Route path="/bets/:betId" element={<BetDetailPage />} />
           <Route path="/wallet" element={<WalletPage />} />
           <Route path="/ranking" element={<RankingPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
           <Route
             path="/admin"
             element={
