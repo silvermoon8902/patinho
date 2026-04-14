@@ -3,6 +3,8 @@ import authReducer from "./authSlice";
 import walletReducer from "./walletSlice";
 import betReducer from "./betSlice";
 import chatReducer from "./chatSlice";
+import rankingReducer from "./rankingSlice";
+import adminReducer from "./adminSlice";
 
 export const store = configureStore({
   reducer: {
@@ -10,6 +12,8 @@ export const store = configureStore({
     wallet: walletReducer,
     bets: betReducer,
     chat: chatReducer,
+    ranking: rankingReducer,
+    admin: adminReducer,
   },
 });
 

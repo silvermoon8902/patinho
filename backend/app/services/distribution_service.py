@@ -13,6 +13,7 @@ from app.models.bet_option import BetOption
 from app.models.participation import Participation
 from app.models.platform_config import PlatformConfig
 from app.services import wallet_service
+from app.services import ranking_service
 
 logger = logging.getLogger(__name__)
 
@@ -146,6 +147,27 @@ async def distribute_prizes(
     bet.chat_closes_at = now + timedelta(hours=2)
 
     await db.flush()
+
+    # Award ranking points
+    for w in winners:
+        await ranking_service.add_points(w.user_id, ranking_service.POINTS_WIN, db)
+    for p in participations:
+        await ranking_service.add_points(
+            p.user_id, ranking_service.POINTS_PARTICIPATE, db
+        )
+
+    await db.flush()
+
+    # Dispatch badge check for all participants
+    from app.tasks.ranking_tasks import award_badges_task
+
+    seen_users: set[str] = set()
+    for p in participations:
+        uid = str(p.user_id)
+        if uid not in seen_users:
+            seen_users.add(uid)
+            award_badges_task.delay(uid)
+
     logger.info(
         "Distributed prizes for bet %s: pool=%s, fee=%s, winners=%d",
         bet_id,
