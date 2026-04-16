@@ -1,3 +1,4 @@
+import React from "react";
 import { Link } from "react-router-dom";
 import type { BetResponse } from "@/store/betSlice";
 
@@ -44,15 +45,40 @@ interface BetCardProps {
 }
 
 export default function BetCard({ bet }: BetCardProps) {
+  const handleShare = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const inviteUrl = `${window.location.origin}/invite/${bet.invite_token}`;
+    const message = `Entra na minha aposta no Patinho! \u{1F3B2}\n${bet.title}\n${inviteUrl}`;
+    const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
   return (
     <Link to={`/bets/${bet.id}`} className="bet-card card">
       <div className="bet-card-header">
         <span className={`category-tag category-${bet.category}`}>
           {CATEGORY_LABELS[bet.category] || bet.category}
         </span>
-        <span className={`status-badge status-${bet.status}`}>
-          {STATUS_LABELS[bet.status] || bet.status}
-        </span>
+        <div className="bet-card-header-right">
+          <button
+            className="btn-share-card"
+            onClick={handleShare}
+            title="Compartilhar no WhatsApp"
+            type="button"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="18" cy="5" r="3"/>
+              <circle cx="6" cy="12" r="3"/>
+              <circle cx="18" cy="19" r="3"/>
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+            </svg>
+          </button>
+          <span className={`status-badge status-${bet.status}`}>
+            {STATUS_LABELS[bet.status] || bet.status}
+          </span>
+        </div>
       </div>
       <h3 className="bet-card-title">{bet.title}</h3>
       <div className="bet-card-stats">
