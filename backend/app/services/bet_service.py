@@ -45,8 +45,7 @@ async def create_bet(db: AsyncSession, user_id: UUID, data: BetCreate) -> Bet:
         category=data.category,
         resolution_type=ResolutionType(data.resolution_type),
         status=BetStatus.OPEN,
-        min_entry=data.min_entry,
-        max_entry=data.max_entry,
+        entry_amount=data.entry_amount,
         max_participants=data.max_participants,
         sports_match_id=data.sports_match_id,
         closes_at=closes_at,
@@ -145,13 +144,6 @@ async def join_bet(
             detail="Maximum number of participants reached",
         )
 
-    # Validate amount within bet limits
-    if data.amount < bet.min_entry or data.amount > bet.max_entry:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Amount must be between R${bet.min_entry} and R${bet.max_entry}",
-        )
-
     # Validate option belongs to this bet
     option_ids = {opt.id for opt in bet.options}
     if data.bet_option_id not in option_ids:
@@ -160,14 +152,17 @@ async def join_bet(
             detail="Invalid bet option for this bet",
         )
 
+    # Amount is fixed by the bet
+    amount = bet.entry_amount
+
     # Lock funds in wallet
-    await wallet_service.lock_funds(db, user_id, data.amount, bet_id)
+    await wallet_service.lock_funds(db, user_id, amount, bet_id)
 
     participation = Participation(
         bet_id=bet_id,
         user_id=user_id,
         bet_option_id=data.bet_option_id,
-        amount=data.amount,
+        amount=amount,
     )
     db.add(participation)
     await db.flush()

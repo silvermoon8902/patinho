@@ -11,6 +11,9 @@ from app.schemas.bet import (
     BetJoin,
     BetOptionResponse,
     BetResponse,
+    ContestationResponse,
+    ContestRequest,
+    DeclareWinnerRequest,
     DirectJoinRequest,
     DisputeEvidenceRequest,
     DisputeResolveRequest,
@@ -19,7 +22,13 @@ from app.schemas.bet import (
     VoteRequest,
 )
 from app.schemas.payment import PaymentResponse
-from app.services import bet_service, direct_join_service, dispute_service, voting_service
+from app.services import (
+    bet_service,
+    declare_service,
+    direct_join_service,
+    dispute_service,
+    voting_service,
+)
 from app.services.auth_service import get_current_active_user
 
 router = APIRouter(tags=["bets"])
@@ -36,12 +45,14 @@ def _build_bet_response(bet) -> dict:
         "category": bet.category,
         "resolution_type": bet.resolution_type.value,
         "status": bet.status.value,
-        "min_entry": bet.min_entry,
-        "max_entry": bet.max_entry,
+        "entry_amount": bet.entry_amount,
         "max_participants": bet.max_participants,
         "closes_at": bet.closes_at,
         "resolved_at": bet.resolved_at,
         "created_at": bet.created_at,
+        "declared_winner_option_id": bet.declared_winner_option_id,
+        "declared_at": bet.declared_at,
+        "confirmation_closes_at": bet.confirmation_closes_at,
         "options": [
             BetOptionResponse.model_validate(opt) for opt in bet.options
         ],
@@ -177,3 +188,51 @@ async def create_direct_join(
         db, user.id, bet_id, data.bet_option_id, data.amount
     )
     return payment
+
+
+@router.post("/{bet_id}/declare-winner", response_model=BetResponse)
+async def declare_winner(
+    bet_id: UUID,
+    data: DeclareWinnerRequest,
+    user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    bet = await declare_service.declare_winner(
+        db, bet_id, user.id, data.winning_option_id
+    )
+    # Reload with relationships for response
+    bet = await bet_service.get_bet(db, bet_id)
+    return _build_bet_response(bet)
+
+
+@router.post("/{bet_id}/contest", response_model=ContestationResponse, status_code=201)
+async def contest_result(
+    bet_id: UUID,
+    data: ContestRequest,
+    user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    contestation = await declare_service.contest_result(
+        db, bet_id, user.id, data.reason
+    )
+    return ContestationResponse.model_validate(contestation)
+
+
+@router.post("/{bet_id}/accept", status_code=200)
+async def accept_result(
+    bet_id: UUID,
+    user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await declare_service.accept_result(db, bet_id, user.id)
+    return {"detail": "Result accepted"}
+
+
+@router.get("/{bet_id}/contestations", response_model=list[ContestationResponse])
+async def list_contestations(
+    bet_id: UUID,
+    user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    contestations = await declare_service.get_contestations(db, bet_id)
+    return [ContestationResponse.model_validate(c) for c in contestations]

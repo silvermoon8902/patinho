@@ -32,7 +32,7 @@ async def create_pix_deposit(
         mp_external_reference=external_reference,
         amount=amount,
         status=PaymentStatus.PENDING,
-        pix_qr_code=mp_response.get("qr_code"),
+        pix_qr_code=mp_response.get("qr_code_base64"),
         pix_copy_paste=mp_response.get("copy_paste"),
         expires_at=datetime.now(timezone.utc) + timedelta(minutes=30),
     )

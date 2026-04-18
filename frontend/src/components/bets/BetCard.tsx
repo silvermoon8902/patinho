@@ -5,6 +5,7 @@ import type { BetResponse } from "@/store/betSlice";
 const STATUS_LABELS: Record<string, string> = {
   open: "Aberta",
   locked: "Travada",
+  pending_confirmation: "Aguardando Confirmacao",
   voting: "Votacao",
   disputed: "Disputada",
   resolved: "Encerrada",
@@ -49,7 +50,7 @@ export default function BetCard({ bet }: BetCardProps) {
     e.preventDefault();
     e.stopPropagation();
     const inviteUrl = `${window.location.origin}/invite/${bet.invite_token}`;
-    const message = `Entra na minha aposta no Patinho! \u{1F3B2}\n${bet.title}\n${inviteUrl}`;
+    const message = `Entra no meu desafio no Patinho! \u{1F3B2}\n${bet.title}\n${inviteUrl}`;
     const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
     window.open(url, "_blank", "noopener,noreferrer");
   };
@@ -89,6 +90,10 @@ export default function BetCard({ bet }: BetCardProps) {
         <div className="bet-stat">
           <span className="bet-stat-label">Pote total</span>
           <span className="bet-stat-value">{formatCurrency((bet.participations || []).reduce((sum, p) => sum + p.amount, 0))}</span>
+        </div>
+        <div className="bet-stat">
+          <span className="bet-stat-label">Entrada</span>
+          <span className="bet-stat-value">{formatCurrency(bet.entry_amount)}</span>
         </div>
         <div className="bet-stat">
           <span className="bet-stat-label">Encerra em</span>

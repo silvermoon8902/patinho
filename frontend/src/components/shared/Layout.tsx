@@ -22,7 +22,7 @@ export default function Layout() {
         </NavLink>
         <NavLink to="/bets" className="nav-item">
           <DiceIcon size={22} />
-          <span className="nav-label">Apostas</span>
+          <span className="nav-label">Desafios</span>
         </NavLink>
         <NavLink to="/wallet" className="nav-item">
           <WalletIcon size={22} />

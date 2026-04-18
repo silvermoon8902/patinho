@@ -36,11 +36,11 @@ export default function AdminDashboardPage() {
             <span className="admin-stat-value">{stats.total_users}</span>
           </div>
           <div className="admin-stat-card card">
-            <span className="admin-stat-label">Total de Apostas</span>
+            <span className="admin-stat-label">Total de Desafios</span>
             <span className="admin-stat-value">{stats.total_bets}</span>
           </div>
           <div className="admin-stat-card card">
-            <span className="admin-stat-label">Apostas Ativas</span>
+            <span className="admin-stat-label">Desafios Ativos</span>
             <span className="admin-stat-value">{stats.active_bets}</span>
           </div>
           <div className="admin-stat-card card">
@@ -68,9 +68,9 @@ export default function AdminDashboardPage() {
             </span>
           </Link>
           <Link to="/admin/bets" className="admin-link-card card">
-            <span className="admin-link-title">Apostas</span>
+            <span className="admin-link-title">Desafios</span>
             <span className="admin-link-desc">
-              Gerenciar e resolver apostas
+              Gerenciar e resolver desafios
             </span>
           </Link>
           <Link to="/admin/fee" className="admin-link-card card">

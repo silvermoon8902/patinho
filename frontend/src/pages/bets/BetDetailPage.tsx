@@ -2,7 +2,15 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch, RootState } from "@/store";
-import { fetchBetDetail, joinBet, castVote, clearBetError } from "@/store/betSlice";
+import {
+  fetchBetDetail,
+  joinBet,
+  castVote,
+  clearBetError,
+  declareWinner,
+  contestResult,
+  acceptResult,
+} from "@/store/betSlice";
 import { fetchMessages, clearChat } from "@/store/chatSlice";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { useToast } from "@/components/shared/Toast";
@@ -11,6 +19,7 @@ import ChatWindow from "@/components/chat/ChatWindow";
 const STATUS_LABELS: Record<string, string> = {
   open: "Aberta",
   locked: "Travada",
+  pending_confirmation: "Aguardando Confirmacao",
   voting: "Votacao",
   disputed: "Disputada",
   resolved: "Encerrada",
@@ -46,6 +55,19 @@ function getTimeRemaining(closesAt: string): string {
   return `${minutes}min restantes`;
 }
 
+function getConfirmationCountdown(confirmationClosesAt: string): string {
+  const now = new Date();
+  const closes = new Date(confirmationClosesAt);
+  const diff = closes.getTime() - now.getTime();
+
+  if (diff <= 0) return "Resultado confirmado";
+
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+  return `Resultado sera confirmado em ${hours}h ${minutes}min`;
+}
+
 export default function BetDetailPage() {
   const { betId } = useParams<{ betId: string }>();
   const dispatch = useDispatch<AppDispatch>();
@@ -55,7 +77,9 @@ export default function BetDetailPage() {
   const user = useSelector((state: RootState) => state.auth.user);
 
   const [selectedOption, setSelectedOption] = useState("");
-  const [amount, setAmount] = useState(5);
+  const [selectedWinnerOption, setSelectedWinnerOption] = useState("");
+  const [contestReason, setContestReason] = useState("");
+  const [showContestForm, setShowContestForm] = useState(false);
   const [activeSection, setActiveSection] = useState<"details" | "chat">("details");
   const [linkCopied, setLinkCopied] = useState(false);
 
@@ -91,13 +115,15 @@ export default function BetDetailPage() {
     (p) => p.user_id === user?.id
   );
 
+  const isCreator = currentBet?.creator_id === user?.id;
+
   const handleJoin = async () => {
     if (!betId || !selectedOption) return;
     const result = await dispatch(
-      joinBet({ betId, optionId: selectedOption, amount })
+      joinBet({ betId, optionId: selectedOption })
     );
     if (joinBet.fulfilled.match(result)) {
-      showToast("Voce entrou na aposta!", "success");
+      showToast("Voce entrou no desafio!", "success");
       dispatch(fetchBetDetail(betId));
     }
   };
@@ -111,10 +137,40 @@ export default function BetDetailPage() {
     }
   };
 
+  const handleDeclareWinner = async () => {
+    if (!betId || !selectedWinnerOption) return;
+    const result = await dispatch(
+      declareWinner({ betId, winningOptionId: selectedWinnerOption })
+    );
+    if (declareWinner.fulfilled.match(result)) {
+      showToast("Vencedor declarado!", "success");
+    }
+  };
+
+  const handleAcceptResult = async () => {
+    if (!betId) return;
+    const result = await dispatch(acceptResult({ betId }));
+    if (acceptResult.fulfilled.match(result)) {
+      showToast("Resultado aceito!", "success");
+    }
+  };
+
+  const handleContest = async () => {
+    if (!betId || !contestReason.trim()) return;
+    const result = await dispatch(
+      contestResult({ betId, reason: contestReason.trim() })
+    );
+    if (contestResult.fulfilled.match(result)) {
+      showToast("Resultado contestado. Votacao iniciada.", "success");
+      setShowContestForm(false);
+      setContestReason("");
+    }
+  };
+
   if (loading && !currentBet) {
     return (
       <div className="bet-detail-page">
-        <div className="bets-loading">Carregando aposta...</div>
+        <div className="bets-loading">Carregando desafio...</div>
       </div>
     );
   }
@@ -126,7 +182,7 @@ export default function BetDetailPage() {
 
   const handleShareWhatsApp = () => {
     if (!currentBet) return;
-    const message = `Entra na minha aposta no Patinho! \u{1F3B2}\n${currentBet.title}\n${getInviteUrl()}`;
+    const message = `Entra no meu desafio no Patinho! \u{1F3B2}\n${currentBet.title}\n${getInviteUrl()}`;
     const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
     window.open(url, "_blank", "noopener,noreferrer");
   };
@@ -153,11 +209,15 @@ export default function BetDetailPage() {
     return (
       <div className="bet-detail-page">
         <div className="bets-empty card">
-          <p className="bets-empty-text">Aposta nao encontrada</p>
+          <p className="bets-empty-text">Desafio nao encontrado</p>
         </div>
       </div>
     );
   }
+
+  const declaredWinnerOption = currentBet.declared_winner_option_id
+    ? currentBet.options.find((o) => o.id === currentBet.declared_winner_option_id)
+    : null;
 
   return (
     <div className="bet-detail-page">
@@ -270,7 +330,13 @@ export default function BetDetailPage() {
           {/* Join section - only if user hasn't joined and bet is open */}
           {!userParticipation && currentBet.status === "open" && (
             <div className="bet-join card">
-              <h3>Entrar na aposta</h3>
+              <h3>Participar do desafio</h3>
+              <div className="bet-join-amount">
+                <span className="bet-join-amount-label">Valor:</span>
+                <span className="bet-join-amount-value">
+                  {formatCurrency(currentBet.entry_amount)}
+                </span>
+              </div>
               <div className="form-group">
                 <label>Escolha uma opcao</label>
                 <select
@@ -286,27 +352,129 @@ export default function BetDetailPage() {
                   ))}
                 </select>
               </div>
-              <div className="form-group">
-                <label>
-                  Valor (R$ {currentBet.min_entry} - R$ {currentBet.max_entry})
-                </label>
-                <input
-                  type="number"
-                  min={currentBet.min_entry}
-                  max={currentBet.max_entry}
-                  value={amount}
-                  onChange={(e) => setAmount(Number(e.target.value))}
-                />
-              </div>
               <button
                 className="btn btn-primary btn-full"
                 onClick={handleJoin}
                 disabled={!selectedOption || loading}
               >
-                {loading ? "Entrando..." : "Entrar na aposta"}
+                {loading
+                  ? "Entrando..."
+                  : `Participar por ${formatCurrency(currentBet.entry_amount)}`}
               </button>
             </div>
           )}
+
+          {/* Pending confirmation - creator declares winner */}
+          {currentBet.status === "pending_confirmation" &&
+            isCreator &&
+            !currentBet.declared_winner_option_id && (
+              <div className="bet-declare-winner card">
+                <h3>Declarar vencedor</h3>
+                <p className="form-hint">
+                  Como criador do desafio, escolha a opcao vencedora.
+                </p>
+                <div className="form-group">
+                  {currentBet.options.map((opt) => (
+                    <label key={opt.id} className="admin-radio-label">
+                      <input
+                        type="radio"
+                        name="declare_winner"
+                        value={opt.id}
+                        checked={selectedWinnerOption === opt.id}
+                        onChange={() => setSelectedWinnerOption(opt.id)}
+                      />
+                      {opt.label}
+                    </label>
+                  ))}
+                </div>
+                <button
+                  className="btn btn-primary btn-full"
+                  onClick={handleDeclareWinner}
+                  disabled={!selectedWinnerOption || loading}
+                >
+                  {loading ? "Confirmando..." : "Confirmar vencedor"}
+                </button>
+              </div>
+            )}
+
+          {/* Pending confirmation - winner declared, awaiting participant action */}
+          {currentBet.status === "pending_confirmation" &&
+            currentBet.declared_winner_option_id &&
+            declaredWinnerOption && (
+              <div className="bet-declared-result card">
+                <h3>Vencedor declarado</h3>
+                <div className="declared-winner-option">
+                  <span className="declared-winner-label">Opcao vencedora:</span>
+                  <span className="declared-winner-value">
+                    {declaredWinnerOption.label}
+                  </span>
+                </div>
+                {currentBet.confirmation_closes_at && (
+                  <div className="confirmation-countdown">
+                    {getConfirmationCountdown(currentBet.confirmation_closes_at)}
+                  </div>
+                )}
+                {!isCreator && userParticipation && (
+                  <>
+                    {!showContestForm ? (
+                      <div className="declared-actions">
+                        <button
+                          className="btn btn-primary btn-full"
+                          onClick={handleAcceptResult}
+                          disabled={loading}
+                        >
+                          Aceitar resultado
+                        </button>
+                        <button
+                          className="btn btn-secondary btn-full"
+                          onClick={() => setShowContestForm(true)}
+                          disabled={loading}
+                          style={{ marginTop: "8px" }}
+                        >
+                          Contestar
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="contest-form">
+                        <div className="form-group">
+                          <label>Motivo da contestacao</label>
+                          <textarea
+                            className="form-textarea"
+                            placeholder="Explique por que voce contesta este resultado..."
+                            value={contestReason}
+                            onChange={(e) => setContestReason(e.target.value)}
+                            rows={3}
+                            maxLength={500}
+                          />
+                        </div>
+                        <button
+                          className="btn btn-primary btn-full"
+                          onClick={handleContest}
+                          disabled={!contestReason.trim() || loading}
+                        >
+                          {loading ? "Enviando..." : "Enviar contestacao"}
+                        </button>
+                        <button
+                          className="btn btn-secondary btn-full"
+                          onClick={() => {
+                            setShowContestForm(false);
+                            setContestReason("");
+                          }}
+                          style={{ marginTop: "8px" }}
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
+                {isCreator && (
+                  <p className="form-hint">
+                    Aguardando confirmacao dos participantes
+                  </p>
+                )}
+              </div>
+            )}
 
           {/* Voting section */}
           {currentBet.status === "voting" && (

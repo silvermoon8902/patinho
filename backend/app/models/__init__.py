@@ -5,6 +5,7 @@ from app.models.payment import Payment, PaymentStatus
 from app.models.bet import Bet, BetStatus, ResolutionType
 from app.models.bet_option import BetOption
 from app.models.participation import Participation
+from app.models.contestation import Contestation
 
 __all__ = [
     "User",
@@ -18,4 +19,5 @@ __all__ = [
     "ResolutionType",
     "BetOption",
     "Participation",
+    "Contestation",
 ]

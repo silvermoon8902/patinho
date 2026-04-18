@@ -95,7 +95,7 @@ export default function RegisterPage() {
       <div className="auth-container">
         <div className="auth-logo">
           <img src={patinhoLogo} alt="Patinho" className="auth-logo-image" />
-          <p className="auth-subtitle">Apostas entre Amigos</p>
+          <p className="auth-subtitle">Desafios entre Amigos</p>
         </div>
 
         <form className="auth-form" onSubmit={handleSubmit}>

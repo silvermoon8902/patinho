@@ -51,11 +51,11 @@ async def create_direct_join_payment(
             detail="Bet entry period has expired",
         )
 
-    # Validate amount
-    if amount < bet.min_entry or amount > bet.max_entry:
+    # Validate amount matches the bet's fixed entry amount
+    if amount != bet.entry_amount:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Amount must be between R${bet.min_entry} and R${bet.max_entry}",
+            detail=f"Amount must be exactly R${bet.entry_amount}",
         )
 
     # Validate option

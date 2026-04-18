@@ -33,7 +33,6 @@ export default function InvitePage() {
   const isAuthenticated = !!accessToken;
 
   const [selectedOption, setSelectedOption] = useState("");
-  const [amount, setAmount] = useState(5);
 
   useEffect(() => {
     if (inviteToken) {
@@ -51,7 +50,7 @@ export default function InvitePage() {
   const handleJoin = async () => {
     if (!currentBet || !selectedOption) return;
     const result = await dispatch(
-      joinBet({ betId: currentBet.id, optionId: selectedOption, amount })
+      joinBet({ betId: currentBet.id, optionId: selectedOption })
     );
     if (joinBet.fulfilled.match(result)) {
       navigate(`/bets/${currentBet.id}`);
@@ -75,7 +74,7 @@ export default function InvitePage() {
           <div className="invite-card card">
             <h2>Convite nao encontrado</h2>
             <p className="invite-error-text">
-              Este link de convite e invalido ou a aposta nao existe mais.
+              Este link de convite e invalido ou o desafio nao existe mais.
             </p>
             <button
               className="btn btn-primary btn-full"
@@ -98,7 +97,7 @@ export default function InvitePage() {
       <div className="invite-container">
         <div className="invite-brand">
           <h2 className="invite-brand-title">Patinho</h2>
-          <p className="invite-brand-sub">Voce foi convidado para uma aposta</p>
+          <p className="invite-brand-sub">Voce foi convidado para um desafio</p>
         </div>
 
         {/* Bet preview card */}
@@ -139,8 +138,7 @@ export default function InvitePage() {
             <div className="invite-detail-row">
               <span className="invite-detail-label">Entrada</span>
               <span className="invite-detail-value">
-                {formatCurrency(currentBet.min_entry)} -{" "}
-                {formatCurrency(currentBet.max_entry)}
+                {formatCurrency(currentBet.entry_amount)}
               </span>
             </div>
             <div className="invite-detail-row">
@@ -158,7 +156,7 @@ export default function InvitePage() {
         {!isAuthenticated ? (
           <div className="invite-action card">
             <p className="invite-action-text">
-              Para participar desta aposta, crie sua conta ou faca login.
+              Para participar deste desafio, crie sua conta ou faca login.
             </p>
             <button
               className="btn btn-primary btn-full"
@@ -170,24 +168,30 @@ export default function InvitePage() {
         ) : userAlreadyJoined ? (
           <div className="invite-action card">
             <p className="invite-action-text">
-              Voce ja esta participando desta aposta.
+              Voce ja esta participando deste desafio.
             </p>
             <button
               className="btn btn-primary btn-full"
               onClick={() => navigate(`/bets/${currentBet.id}`)}
             >
-              Ver aposta
+              Ver desafio
             </button>
           </div>
         ) : currentBet.status !== "open" ? (
           <div className="invite-action card">
             <p className="invite-action-text">
-              Esta aposta nao esta mais aceitando participantes.
+              Este desafio nao esta mais aceitando participantes.
             </p>
           </div>
         ) : (
           <div className="invite-action card">
-            <h3>Participar da aposta</h3>
+            <h3>Participar do desafio</h3>
+            <div className="bet-join-amount">
+              <span className="bet-join-amount-label">Valor:</span>
+              <span className="bet-join-amount-value">
+                {formatCurrency(currentBet.entry_amount)}
+              </span>
+            </div>
             <div className="form-group">
               <label>Escolha uma opcao</label>
               <select
@@ -203,24 +207,14 @@ export default function InvitePage() {
                 ))}
               </select>
             </div>
-            <div className="form-group">
-              <label>
-                Valor (R$ {currentBet.min_entry} - R$ {currentBet.max_entry})
-              </label>
-              <input
-                type="number"
-                min={currentBet.min_entry}
-                max={currentBet.max_entry}
-                value={amount}
-                onChange={(e) => setAmount(Number(e.target.value))}
-              />
-            </div>
             <button
               className="btn btn-primary btn-full"
               onClick={handleJoin}
               disabled={!selectedOption || loading}
             >
-              {loading ? "Entrando..." : "Entrar na aposta"}
+              {loading
+                ? "Entrando..."
+                : `Participar por ${formatCurrency(currentBet.entry_amount)}`}
             </button>
             <button
               className="btn btn-secondary btn-full"
@@ -228,7 +222,7 @@ export default function InvitePage() {
               onClick={handleJoin}
               disabled={!selectedOption || loading}
             >
-              Pagar via Pix e entrar
+              Pagar via Pix e participar
             </button>
           </div>
         )}

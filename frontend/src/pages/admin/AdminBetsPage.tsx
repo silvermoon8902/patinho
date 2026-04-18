@@ -88,7 +88,7 @@ export default function AdminBetsPage() {
 
   return (
     <div className="admin-page">
-      <h1 className="admin-page-title">Gerenciar Apostas</h1>
+      <h1 className="admin-page-title">Gerenciar Desafios</h1>
 
       {error && <div className="alert alert-error">{error}</div>}
 
@@ -111,7 +111,7 @@ export default function AdminBetsPage() {
       {loading && <p className="empty-state">Carregando...</p>}
 
       {!loading && bets.length === 0 && (
-        <p className="empty-state">Nenhuma aposta encontrada</p>
+        <p className="empty-state">Nenhum desafio encontrado</p>
       )}
 
       {!loading && bets.length > 0 && (
@@ -212,7 +212,7 @@ export default function AdminBetsPage() {
             className="admin-modal-card card"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2>Resolver Aposta</h2>
+            <h2>Resolver Desafio</h2>
             <p className="admin-modal-subtitle">{resolveModal.title}</p>
 
             <div className="form-group">

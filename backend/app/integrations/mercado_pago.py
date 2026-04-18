@@ -14,9 +14,15 @@ MERCADO_PAGO_BASE_URL = "https://api.mercadopago.com"
 
 class MercadoPagoClient:
     def __init__(self) -> None:
-        self.access_token = settings.MERCADO_PAGO_ACCESS_TOKEN
-        self.webhook_secret = settings.MERCADO_PAGO_WEBHOOK_SECRET
         self.base_url = MERCADO_PAGO_BASE_URL
+
+    @property
+    def access_token(self) -> str:
+        return settings.MERCADO_PAGO_ACCESS_TOKEN
+
+    @property
+    def webhook_secret(self) -> str:
+        return settings.MERCADO_PAGO_WEBHOOK_SECRET
 
     @property
     def _headers(self) -> dict:

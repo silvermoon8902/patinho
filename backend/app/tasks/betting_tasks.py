@@ -17,7 +17,6 @@ async def _lock_expired_bets_async() -> int:
 
     from app.database import async_session_maker
     from app.models.bet import Bet, BetStatus, ResolutionType
-    from app.services.voting_service import start_voting
 
     async with async_session_maker() as db:
         try:
@@ -45,9 +44,14 @@ async def _lock_expired_bets_async() -> int:
                         locked_count += 1
                         logger.info("Locked sports bet %s", bet.id)
                     elif bet.resolution_type == ResolutionType.VOTING:
-                        await start_voting(db, bet.id)
+                        # Creator-declared-winner flow: lock first.
+                        # Creator then calls declare-winner endpoint.
+                        bet.status = BetStatus.LOCKED
                         locked_count += 1
-                        logger.info("Started voting for bet %s", bet.id)
+                        logger.info(
+                            "Locked voting bet %s awaiting creator declaration",
+                            bet.id,
+                        )
                 except Exception:
                     logger.exception("Error locking/transitioning bet %s", bet.id)
                     continue

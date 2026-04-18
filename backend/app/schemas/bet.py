@@ -12,8 +12,7 @@ class BetCreate(BaseModel):
     resolution_type: str = Field(pattern="^(auto_api|voting)$")
     options: list[str] = Field(min_length=2)
     closes_at: datetime
-    min_entry: Decimal = Field(default=Decimal("5"), ge=5, le=1000)
-    max_entry: Decimal = Field(default=Decimal("1000"), ge=5, le=1000)
+    entry_amount: Decimal = Field(default=Decimal("5"), ge=5, le=1000)
     max_participants: int = Field(default=100, ge=2, le=1000)
     sports_match_id: str | None = None
 
@@ -26,18 +25,9 @@ class BetCreate(BaseModel):
             raise ValueError("Options must be unique")
         return v
 
-    @field_validator("max_entry")
-    @classmethod
-    def validate_max_entry(cls, v: Decimal, info) -> Decimal:
-        min_entry = info.data.get("min_entry", Decimal("5"))
-        if v < min_entry:
-            raise ValueError("max_entry must be >= min_entry")
-        return v
-
 
 class BetJoin(BaseModel):
     bet_option_id: uuid.UUID
-    amount: Decimal = Field(ge=5, le=1000)
 
 
 class BetOptionResponse(BaseModel):
@@ -68,12 +58,14 @@ class BetResponse(BaseModel):
     category: str
     resolution_type: str
     status: str
-    min_entry: Decimal
-    max_entry: Decimal
+    entry_amount: Decimal
     max_participants: int
     closes_at: datetime
     resolved_at: datetime | None
     created_at: datetime
+    declared_winner_option_id: uuid.UUID | None = None
+    declared_at: datetime | None = None
+    confirmation_closes_at: datetime | None = None
     options: list[BetOptionResponse]
     current_participants: int
 
@@ -106,3 +98,21 @@ class DisputeResolveRequest(BaseModel):
 class DirectJoinRequest(BaseModel):
     bet_option_id: uuid.UUID
     amount: Decimal = Field(ge=5, le=1000)
+
+
+class DeclareWinnerRequest(BaseModel):
+    winning_option_id: uuid.UUID
+
+
+class ContestRequest(BaseModel):
+    reason: str | None = None
+
+
+class ContestationResponse(BaseModel):
+    id: uuid.UUID
+    bet_id: uuid.UUID
+    user_id: uuid.UUID
+    reason: str | None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}

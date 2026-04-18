@@ -11,7 +11,7 @@ function formatFeePreview(feeType: string, feeValue: number): string {
     style: "currency",
     currency: "BRL",
   });
-  return `Taxa atual: ${formatted} por aposta`;
+  return `Taxa atual: ${formatted} por desafio`;
 }
 
 export default function AdminFeePage() {

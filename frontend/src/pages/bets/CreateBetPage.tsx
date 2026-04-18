@@ -35,8 +35,7 @@ export default function CreateBetPage() {
 
   // Step 3: Rules
   const [resolutionType, setResolutionType] = useState<"auto" | "voting">("voting");
-  const [minEntry, setMinEntry] = useState(MIN_ENTRY);
-  const [maxEntry, setMaxEntry] = useState(MAX_ENTRY);
+  const [entryAmount, setEntryAmount] = useState(MIN_ENTRY);
   const [maxParticipants, setMaxParticipants] = useState(100);
   const [closesAt, setClosesAt] = useState("");
 
@@ -64,7 +63,7 @@ export default function CreateBetPage() {
           options.filter((o) => o.trim().length > 0).length >= 2
         );
       case 2:
-        return closesAt.length > 0 && minEntry >= MIN_ENTRY && maxEntry <= MAX_ENTRY;
+        return closesAt.length > 0 && entryAmount >= MIN_ENTRY && entryAmount <= MAX_ENTRY;
       default:
         return true;
     }
@@ -94,8 +93,7 @@ export default function CreateBetPage() {
         category,
         options: filteredOptions,
         resolution_type: resolutionType,
-        min_entry: minEntry,
-        max_entry: maxEntry,
+        entry_amount: entryAmount,
         max_participants: maxParticipants,
         closes_at: new Date(closesAt).toISOString(),
       })
@@ -114,7 +112,7 @@ export default function CreateBetPage() {
 
   return (
     <div className="create-bet-page">
-      <h1 className="page-title">Criar Aposta</h1>
+      <h1 className="page-title">Criar Desafio</h1>
 
       {/* Progress indicator */}
       <div className="step-progress">
@@ -137,7 +135,7 @@ export default function CreateBetPage() {
       {step === 0 && (
         <div className="create-bet-form card">
           <div className="form-group">
-            <label>Titulo da aposta</label>
+            <label>Titulo do desafio</label>
             <input
               type="text"
               placeholder="Ex: Quem ganha o classico?"
@@ -150,7 +148,7 @@ export default function CreateBetPage() {
             <label>Descricao (opcional)</label>
             <textarea
               className="form-textarea"
-              placeholder="Descreva os detalhes da aposta..."
+              placeholder="Descreva os detalhes do desafio..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
@@ -178,7 +176,7 @@ export default function CreateBetPage() {
       {step === 1 && (
         <div className="create-bet-form card">
           <p className="form-hint">
-            Adicione pelo menos 2 opcoes para a aposta.
+            Adicione pelo menos 2 opcoes para o desafio.
           </p>
           {options.map((opt, i) => (
             <div key={i} className="option-row">
@@ -229,27 +227,15 @@ export default function CreateBetPage() {
               <option value="auto">Automatico</option>
             </select>
           </div>
-          <div className="form-row">
-            <div className="form-group">
-              <label>Entrada minima (R$)</label>
-              <input
-                type="number"
-                min={MIN_ENTRY}
-                max={MAX_ENTRY}
-                value={minEntry}
-                onChange={(e) => setMinEntry(Number(e.target.value))}
-              />
-            </div>
-            <div className="form-group">
-              <label>Entrada maxima (R$)</label>
-              <input
-                type="number"
-                min={MIN_ENTRY}
-                max={MAX_ENTRY}
-                value={maxEntry}
-                onChange={(e) => setMaxEntry(Number(e.target.value))}
-              />
-            </div>
+          <div className="form-group">
+            <label>Valor de entrada (R$)</label>
+            <input
+              type="number"
+              min={MIN_ENTRY}
+              max={MAX_ENTRY}
+              value={entryAmount}
+              onChange={(e) => setEntryAmount(Number(e.target.value))}
+            />
           </div>
           <div className="form-group">
             <label>Maximo de participantes</label>
@@ -277,7 +263,7 @@ export default function CreateBetPage() {
       {/* Step 4: Review */}
       {step === 3 && (
         <div className="create-bet-form card">
-          <h3>Resumo da aposta</h3>
+          <h3>Resumo do desafio</h3>
           <div className="review-section">
             <div className="review-item">
               <span className="review-label">Titulo</span>
@@ -314,7 +300,7 @@ export default function CreateBetPage() {
             <div className="review-item">
               <span className="review-label">Entrada</span>
               <span className="review-value">
-                {formatCurrency(minEntry)} - {formatCurrency(maxEntry)}
+                {formatCurrency(entryAmount)}
               </span>
             </div>
             <div className="review-item">
@@ -360,7 +346,7 @@ export default function CreateBetPage() {
             onClick={handleSubmit}
             disabled={loading}
           >
-            {loading ? "Criando..." : "Criar Aposta"}
+            {loading ? "Criando..." : "Criar Desafio"}
           </button>
         )}
       </div>

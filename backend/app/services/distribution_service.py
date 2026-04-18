@@ -42,9 +42,10 @@ async def distribute_prizes(
 
     1. Read fee config
     2. Calculate prize pool and admin fee
-    3. Distribute net pool proportionally among winners
+    3. Split net pool equally among winners
     4. Unlock loser funds (no credit)
-    5. Record admin fee and update bet status
+    5. If no winners: refund all participants (no fee)
+    6. Record admin fee and update bet status
     """
     # Load bet
     bet = await db.get(Bet, bet_id)
@@ -78,29 +79,20 @@ async def distribute_prizes(
     # Get fee config
     fee_type, fee_value = await _get_fee_config(db)
 
-    # Calculate admin fee
-    if fee_type == "percent":
-        admin_fee_amount = (prize_pool * fee_value / Decimal("100")).quantize(
-            Decimal("0.01"), rounding=ROUND_DOWN
-        )
-    else:  # fixed
-        admin_fee_amount = min(fee_value, prize_pool)
-
-    net_pool = prize_pool - admin_fee_amount
-
     # Split winners and losers
     winners = [p for p in participations if p.bet_option_id == winning_option_id]
     losers = [p for p in participations if p.bet_option_id != winning_option_id]
 
     if not winners:
-        # No winners: refund everyone minus fee? Per spec, still distribute.
-        # If nobody picked the winning option, net_pool goes unclaimed.
-        # Unlock all as losers with no prize.
+        # No winners: refund all participants (no fee)
+        admin_fee_amount = Decimal("0")
         for p in participations:
-            await wallet_service.unlock_funds(db, p.user_id, p.amount, bet_id)
-            p.prize_amount = Decimal("0")
+            await wallet_service.unlock_and_credit_prize(
+                db, p.user_id, p.amount, p.amount, bet_id
+            )
+            p.prize_amount = p.amount
 
-        # Still record the fee even if no winners
+        # Record zero-amount admin fee for audit trail
         admin_fee = AdminFee(
             bet_id=bet_id,
             fee_type=FeeType(fee_type),
@@ -110,17 +102,27 @@ async def distribute_prizes(
         )
         db.add(admin_fee)
     else:
-        total_winning_entries = sum(w.amount for w in winners)
-
-        # Credit each winner proportionally
-        for w in winners:
-            prize = (net_pool * w.amount / total_winning_entries).quantize(
+        # Calculate admin fee only when there are winners
+        if fee_type == "percent":
+            admin_fee_amount = (prize_pool * fee_value / Decimal("100")).quantize(
                 Decimal("0.01"), rounding=ROUND_DOWN
             )
+        else:  # fixed
+            admin_fee_amount = min(fee_value, prize_pool)
+
+        net_pool = prize_pool - admin_fee_amount
+
+        # Equal split among winners
+        per_winner_prize = (net_pool / Decimal(len(winners))).quantize(
+            Decimal("0.01"), rounding=ROUND_DOWN
+        )
+
+        # Credit each winner the same amount
+        for w in winners:
             await wallet_service.unlock_and_credit_prize(
-                db, w.user_id, w.amount, prize, bet_id
+                db, w.user_id, w.amount, per_winner_prize, bet_id
             )
-            w.prize_amount = prize
+            w.prize_amount = per_winner_prize
 
         # Unlock loser funds (no credit)
         for p in losers:

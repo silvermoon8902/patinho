@@ -36,7 +36,7 @@ export default function DashboardPage() {
           </span>
         </div>
         <div className="card stat-card">
-          <span className="stat-label">Apostas ativas</span>
+          <span className="stat-label">Desafios ativos</span>
           <span className="stat-value">0</span>
         </div>
       </div>
@@ -45,7 +45,7 @@ export default function DashboardPage() {
         <h2>Acoes rapidas</h2>
         <div className="actions-grid">
           <Link to="/bets/create" className="card action-card">
-            <span className="action-label">Criar Aposta</span>
+            <span className="action-label">Criar Desafio</span>
           </Link>
           <Link to="/wallet" className="card action-card">
             <span className="action-label">Depositar</span>

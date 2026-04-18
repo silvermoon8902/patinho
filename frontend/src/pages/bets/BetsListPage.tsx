@@ -31,9 +31,9 @@ export default function BetsListPage() {
   return (
     <div className="bets-list-page">
       <div className="bets-header">
-        <h1 className="page-title">Apostas</h1>
+        <h1 className="page-title">Desafios</h1>
         <Link to="/bets/create" className="btn btn-primary btn-create-bet">
-          Criar aposta
+          Criar desafio
         </Link>
       </div>
 
@@ -61,14 +61,14 @@ export default function BetsListPage() {
       {error && <div className="alert alert-error">{error}</div>}
 
       {loading && (
-        <div className="bets-loading">Carregando apostas...</div>
+        <div className="bets-loading">Carregando desafios...</div>
       )}
 
       {!loading && bets.length === 0 && (
         <div className="bets-empty card">
-          <p className="bets-empty-text">Nenhuma aposta encontrada</p>
+          <p className="bets-empty-text">Nenhum desafio encontrado</p>
           <Link to="/bets/create" className="btn btn-primary">
-            Criar sua primeira aposta
+            Criar seu primeiro desafio
           </Link>
         </div>
       )}

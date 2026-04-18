@@ -111,7 +111,7 @@ export const fetchAdminBets = createAsyncThunk(
     } catch (error: unknown) {
       const err = error as { response?: { data?: { detail?: string } } };
       return rejectWithValue(
-        err.response?.data?.detail || "Erro ao carregar apostas"
+        err.response?.data?.detail || "Erro ao carregar desafios"
       );
     }
   }
@@ -203,7 +203,7 @@ export const forceResolveBet = createAsyncThunk(
     } catch (error: unknown) {
       const err = error as { response?: { data?: { detail?: string } } };
       return rejectWithValue(
-        err.response?.data?.detail || "Erro ao resolver aposta"
+        err.response?.data?.detail || "Erro ao resolver desafio"
       );
     }
   }
@@ -220,7 +220,7 @@ export const forceCancelBet = createAsyncThunk(
     } catch (error: unknown) {
       const err = error as { response?: { data?: { detail?: string } } };
       return rejectWithValue(
-        err.response?.data?.detail || "Erro ao cancelar aposta"
+        err.response?.data?.detail || "Erro ao cancelar desafio"
       );
     }
   }

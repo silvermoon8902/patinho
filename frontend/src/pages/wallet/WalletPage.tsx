@@ -28,8 +28,8 @@ function formatDate(dateStr: string): string {
 const transactionTypeLabels: Record<string, string> = {
   deposit: "Deposito",
   withdrawal: "Saque",
-  bet_placed: "Aposta realizada",
-  bet_won: "Aposta ganha",
+  bet_placed: "Entrada no desafio",
+  bet_won: "Desafio ganho",
   bet_refund: "Reembolso",
 };
 
@@ -122,20 +122,20 @@ export default function WalletPage() {
             <p className="pix-instruction">
               Escaneie o QR Code ou copie o codigo Pix abaixo:
             </p>
-            {depositPayment.pix_qr_code_base64 && (
+            {depositPayment.pix_qr_code && (
               <div className="pix-qr">
                 <img
-                  src={`data:image/png;base64,${depositPayment.pix_qr_code_base64}`}
+                  src={`data:image/png;base64,${depositPayment.pix_qr_code}`}
                   alt="QR Code Pix"
                   className="qr-image"
                 />
               </div>
             )}
             <div className="pix-code-container">
-              <code className="pix-code">{depositPayment.pix_qr_code}</code>
+              <code className="pix-code">{depositPayment.pix_copy_paste}</code>
               <button
                 className="btn btn-secondary btn-copy"
-                onClick={() => handleCopyPix(depositPayment.pix_qr_code)}
+                onClick={() => handleCopyPix(depositPayment.pix_copy_paste || "")}
               >
                 {copied ? "Copiado!" : "Copiar"}
               </button>

@@ -30,10 +30,9 @@ export interface BetResponse {
   title: string;
   description?: string;
   category: string;
-  status: "open" | "locked" | "voting" | "disputed" | "resolved" | "cancelled";
+  status: "open" | "locked" | "pending_confirmation" | "voting" | "disputed" | "resolved" | "cancelled";
   resolution_type: "auto_api" | "voting";
-  min_entry: number;
-  max_entry: number;
+  entry_amount: number;
   max_participants: number;
   closes_at: string;
   resolved_at?: string;
@@ -43,6 +42,9 @@ export interface BetResponse {
   options: BetOption[];
   current_participants: number;
   participations?: BetParticipant[];
+  declared_winner_option_id?: string;
+  declared_at?: string;
+  confirmation_closes_at?: string;
 }
 
 interface CreateBetPayload {
@@ -51,8 +53,7 @@ interface CreateBetPayload {
   category: string;
   options: string[];
   resolution_type: "auto" | "voting";
-  min_entry: number;
-  max_entry: number;
+  entry_amount: number;
   max_participants: number;
   closes_at: string;
 }
@@ -60,12 +61,25 @@ interface CreateBetPayload {
 interface JoinBetPayload {
   betId: string;
   optionId: string;
-  amount: number;
 }
 
 interface CastVotePayload {
   betId: string;
   optionId: string;
+}
+
+interface DeclareWinnerPayload {
+  betId: string;
+  winningOptionId: string;
+}
+
+interface ContestResultPayload {
+  betId: string;
+  reason: string;
+}
+
+interface AcceptResultPayload {
+  betId: string;
 }
 
 interface BetState {
@@ -90,7 +104,7 @@ export const fetchMyBets = createAsyncThunk(
       const response = await apiClient.get(`/bets${params}`);
       return response.data;
     } catch (error: unknown) {
-      return rejectWithValue(extractError(error, "Erro ao carregar apostas"));
+      return rejectWithValue(extractError(error, "Erro ao carregar desafios"));
     }
   }
 );
@@ -102,7 +116,7 @@ export const fetchBetDetail = createAsyncThunk(
       const response = await apiClient.get(`/bets/${betId}`);
       return response.data;
     } catch (error: unknown) {
-      return rejectWithValue(extractError(error, "Erro ao carregar aposta"));
+      return rejectWithValue(extractError(error, "Erro ao carregar desafio"));
     }
   }
 );
@@ -126,22 +140,21 @@ export const createBet = createAsyncThunk(
       const response = await apiClient.post("/bets", data);
       return response.data;
     } catch (error: unknown) {
-      return rejectWithValue(extractError(error, "Erro ao criar aposta"));
+      return rejectWithValue(extractError(error, "Erro ao criar desafio"));
     }
   }
 );
 
 export const joinBet = createAsyncThunk(
   "bets/joinBet",
-  async ({ betId, optionId, amount }: JoinBetPayload, { rejectWithValue }) => {
+  async ({ betId, optionId }: JoinBetPayload, { rejectWithValue }) => {
     try {
       const response = await apiClient.post(`/bets/${betId}/join`, {
         bet_option_id: optionId,
-        amount,
       });
       return response.data;
     } catch (error: unknown) {
-      return rejectWithValue(extractError(error, "Erro ao entrar na aposta"));
+      return rejectWithValue(extractError(error, "Erro ao entrar no desafio"));
     }
   }
 );
@@ -156,6 +169,47 @@ export const castVote = createAsyncThunk(
       return response.data;
     } catch (error: unknown) {
       return rejectWithValue(extractError(error, "Erro ao votar"));
+    }
+  }
+);
+
+export const declareWinner = createAsyncThunk(
+  "bets/declareWinner",
+  async ({ betId, winningOptionId }: DeclareWinnerPayload, { rejectWithValue, dispatch }) => {
+    try {
+      await apiClient.post(`/bets/${betId}/declare-winner`, {
+        winning_option_id: winningOptionId,
+      });
+      const refreshed = await dispatch(fetchBetDetail(betId));
+      return refreshed.payload;
+    } catch (error: unknown) {
+      return rejectWithValue(extractError(error, "Erro ao declarar vencedor"));
+    }
+  }
+);
+
+export const contestResult = createAsyncThunk(
+  "bets/contestResult",
+  async ({ betId, reason }: ContestResultPayload, { rejectWithValue, dispatch }) => {
+    try {
+      await apiClient.post(`/bets/${betId}/contest`, { reason });
+      const refreshed = await dispatch(fetchBetDetail(betId));
+      return refreshed.payload;
+    } catch (error: unknown) {
+      return rejectWithValue(extractError(error, "Erro ao contestar resultado"));
+    }
+  }
+);
+
+export const acceptResult = createAsyncThunk(
+  "bets/acceptResult",
+  async ({ betId }: AcceptResultPayload, { rejectWithValue, dispatch }) => {
+    try {
+      await apiClient.post(`/bets/${betId}/accept`);
+      const refreshed = await dispatch(fetchBetDetail(betId));
+      return refreshed.payload;
+    } catch (error: unknown) {
+      return rejectWithValue(extractError(error, "Erro ao aceitar resultado"));
     }
   }
 );
@@ -253,6 +307,45 @@ const betSlice = createSlice({
       state.currentBet = action.payload;
     });
     builder.addCase(castVote.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.payload as string;
+    });
+
+    // Declare winner
+    builder.addCase(declareWinner.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+    });
+    builder.addCase(declareWinner.fulfilled, (state) => {
+      state.loading = false;
+    });
+    builder.addCase(declareWinner.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.payload as string;
+    });
+
+    // Contest result
+    builder.addCase(contestResult.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+    });
+    builder.addCase(contestResult.fulfilled, (state) => {
+      state.loading = false;
+    });
+    builder.addCase(contestResult.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.payload as string;
+    });
+
+    // Accept result
+    builder.addCase(acceptResult.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+    });
+    builder.addCase(acceptResult.fulfilled, (state) => {
+      state.loading = false;
+    });
+    builder.addCase(acceptResult.rejected, (state, action) => {
       state.loading = false;
       state.error = action.payload as string;
     });
