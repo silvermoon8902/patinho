@@ -1,7 +1,9 @@
 import { useState, useEffect, FormEvent } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useTheme } from "@/hooks/useTheme";
 import patinhoLogo from "@/assets/patinho-logo.png";
+import patinhoLogoWhite from "@/assets/patinho-logo-white.png";
 
 export default function RegisterPage() {
   const [email, setEmail] = useState("");
@@ -15,6 +17,8 @@ export default function RegisterPage() {
   const [validationError, setValidationError] = useState<string | null>(null);
 
   const { register, isAuthenticated, loading, error, resetError } = useAuth();
+  const { theme } = useTheme();
+  const logoSrc = theme === "dark" ? patinhoLogoWhite : patinhoLogo;
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -94,7 +98,7 @@ export default function RegisterPage() {
     <div className="auth-page">
       <div className="auth-container">
         <div className="auth-logo">
-          <img src={patinhoLogo} alt="Patinho" className="auth-logo-image" />
+          <img src={logoSrc} alt="Patinho" className="auth-logo-image" />
           <p className="auth-subtitle">Desafios entre Amigos</p>
         </div>
 

@@ -18,10 +18,23 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+const AUTH_ENDPOINTS = ["/auth/login", "/auth/register", "/auth/refresh"];
+
+function isAuthEndpoint(url: string | undefined): boolean {
+  if (!url) return false;
+  return AUTH_ENDPOINTS.some((ep) => url.includes(ep));
+}
+
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+
+    // Do not trigger auth refresh / redirect on login/register/refresh endpoints.
+    // These 401s are expected (wrong credentials) and should flow back to the caller.
+    if (isAuthEndpoint(originalRequest?.url)) {
+      return Promise.reject(error);
+    }
 
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;

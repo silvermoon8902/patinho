@@ -296,7 +296,7 @@ export default function BetDetailPage() {
           <div className="bet-options card">
             <h3>Opcoes</h3>
             <div className="options-list">
-              {currentBet.options.map((option) => {
+              {(currentBet.options || []).map((option) => {
                 const isUserPick = userParticipation?.bet_option_id === option.id;
                 const isWinner = option.is_winner;
                 return (
@@ -342,7 +342,7 @@ export default function BetDetailPage() {
                   onChange={(e) => setSelectedOption(e.target.value)}
                 >
                   <option value="">Selecione...</option>
-                  {currentBet.options.map((opt) => (
+                  {(currentBet.options || []).map((opt) => (
                     <option key={opt.id} value={opt.id}>
                       {opt.label}
                     </option>
@@ -371,7 +371,7 @@ export default function BetDetailPage() {
                   Como criador do desafio, escolha a opcao vencedora.
                 </p>
                 <div className="form-group">
-                  {currentBet.options.map((opt) => (
+                  {(currentBet.options || []).map((opt) => (
                     <label key={opt.id} className="admin-radio-label">
                       <input
                         type="radio"
@@ -481,7 +481,7 @@ export default function BetDetailPage() {
                 Vote na opcao que voce acredita ser a vencedora.
               </p>
               <div className="voting-options">
-                {currentBet.options.map((option) => (
+                {(currentBet.options || []).map((option) => (
                   <button
                     key={option.id}
                     className="btn btn-secondary btn-full voting-btn"

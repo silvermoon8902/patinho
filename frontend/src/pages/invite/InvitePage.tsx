@@ -113,7 +113,7 @@ export default function InvitePage() {
             <div className="invite-detail-row">
               <span className="invite-detail-label">Opcoes</span>
               <div className="invite-options-list">
-                {currentBet.options.map((opt) => (
+                {(currentBet.options || []).map((opt) => (
                   <span key={opt.id} className="review-option-tag">
                     {opt.label}
                   </span>
@@ -197,7 +197,7 @@ export default function InvitePage() {
                 onChange={(e) => setSelectedOption(e.target.value)}
               >
                 <option value="">Selecione...</option>
-                {currentBet.options.map((opt) => (
+                {(currentBet.options || []).map((opt) => (
                   <option key={opt.id} value={opt.id}>
                     {opt.label}
                   </option>

@@ -22,10 +22,15 @@ function formatDate(dateStr: string): string {
 const transactionTypeLabels: Record<string, string> = {
   deposit: "Deposito",
   withdrawal: "Saque",
-  bet_placed: "Entrada no desafio",
-  bet_won: "Desafio ganho",
-  bet_refund: "Reembolso",
+  bet_lock: "Entrada no desafio",
+  bet_unlock: "Desafio encerrado",
+  prize_credit: "Premio recebido",
+  fee_debit: "Taxa da plataforma",
+  refund: "Reembolso",
 };
+
+// Negative types remove money from the user's available balance
+const NEGATIVE_TYPES = new Set(["bet_lock", "fee_debit", "withdrawal"]);
 
 export default function WalletPage() {
   const dispatch = useDispatch<AppDispatch>();
@@ -157,26 +162,28 @@ export default function WalletPage() {
           <p className="empty-state">Nenhuma transacao encontrada</p>
         ) : (
           <ul className="transaction-list">
-            {transactions.map((tx) => (
-              <li key={tx.id} className="transaction-item">
-                <div className="transaction-info">
-                  <span className="transaction-type">
-                    {transactionTypeLabels[tx.type] || tx.type}
+            {transactions.map((tx) => {
+              const isNegative = NEGATIVE_TYPES.has(tx.type);
+              const amount = Math.abs(Number(tx.amount));
+              return (
+                <li key={tx.id} className="transaction-item">
+                  <div className="transaction-info">
+                    <span className="transaction-type">
+                      {transactionTypeLabels[tx.type] || tx.type}
+                    </span>
+                    <span className="transaction-date">
+                      {formatDate(tx.created_at)}
+                    </span>
+                  </div>
+                  <span
+                    className={`transaction-amount ${isNegative ? "negative" : "positive"}`}
+                  >
+                    {isNegative ? "-" : "+"}
+                    {formatCurrency(amount)}
                   </span>
-                  <span className="transaction-date">
-                    {formatDate(tx.created_at)}
-                  </span>
-                </div>
-                <span
-                  className={`transaction-amount ${
-                    tx.amount >= 0 ? "positive" : "negative"
-                  }`}
-                >
-                  {tx.amount >= 0 ? "+" : ""}
-                  {formatCurrency(tx.amount)}
-                </span>
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>

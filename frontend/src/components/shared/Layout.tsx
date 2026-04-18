@@ -1,13 +1,53 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { HomeIcon, DiceIcon, WalletIcon, TrophyIcon, UserIcon } from "./Icons";
+import { useAuth } from "@/hooks/useAuth";
+import { useTheme } from "@/hooks/useTheme";
+import ThemeToggle from "./ThemeToggle";
 import patinhoLogo from "@/assets/patinho-logo.png";
+import patinhoLogoWhite from "@/assets/patinho-logo-white.png";
+
+const TOP_LEVEL_PATHS = new Set(["/", "/bets", "/wallet", "/ranking", "/profile"]);
 
 export default function Layout() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { user } = useAuth();
+  const { theme } = useTheme();
+  const showBack = !TOP_LEVEL_PATHS.has(location.pathname);
+  const isInAdminArea = location.pathname.startsWith("/admin");
+  const showAdminShortcut = user?.is_admin && !isInAdminArea;
+  const logoSrc = theme === "dark" ? patinhoLogoWhite : patinhoLogo;
+
   return (
     <div className="layout">
       <header className="header">
         <div className="header-content">
-          <img src={patinhoLogo} alt="Patinho" className="logo-image" />
+          {showBack && (
+            <button
+              type="button"
+              className="header-back"
+              onClick={() => navigate(-1)}
+              aria-label="Voltar"
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+            </button>
+          )}
+          <img src={logoSrc} alt="Patinho" className="logo-image" />
+          <div className="header-actions">
+            <ThemeToggle />
+          </div>
+          {showAdminShortcut && (
+            <button
+              type="button"
+              className="header-admin-btn"
+              onClick={() => navigate("/admin")}
+              aria-label="Ir para painel admin"
+            >
+              Admin
+            </button>
+          )}
         </div>
       </header>
 

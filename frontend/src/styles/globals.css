@@ -1,13 +1,25 @@
-/* ===== CSS Custom Properties ===== */
-:root {
+/* ===== CSS Custom Properties (Light theme — default) ===== */
+:root,
+html[data-theme="light"] {
+  /* Brand palette — fixed, never theme-dependent */
   --color-primary: #FFD10D;
   --color-primary-hover: #e6bc00;
   --color-navy: #001F3F;
   --color-navy-light: #003366;
   --color-white: #FFFFFF;
-  --color-bg: #F5F5F5;
   --color-success: #22C55E;
   --color-error: #EF4444;
+
+  /* Semantic tokens — switch between themes */
+  --color-bg: #F5F5F5;
+  --color-surface: #FFFFFF;
+  --color-surface-alt: #F3F4F6;
+  --color-text: #001F3F;
+  --color-text-muted: #6b7280;
+  --color-text-subtle: #9ca3af;
+  --color-border: #e5e7eb;
+  --color-border-strong: #d1d5db;
+
   --color-gray-100: #f3f4f6;
   --color-gray-200: #e5e7eb;
   --color-gray-300: #d1d5db;
@@ -15,10 +27,175 @@
   --color-gray-500: #6b7280;
   --color-gray-600: #4b5563;
   --color-gray-700: #374151;
+
   --radius: 12px;
   --radius-sm: 8px;
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.06);
+}
+
+/* ===== Dark theme (navy background per brand manual sec. 7) ===== */
+html[data-theme="dark"] {
+  --color-bg: #001F3F;
+  --color-surface: #002B55;
+  --color-surface-alt: #003366;
+  --color-text: #FFFFFF;
+  --color-text-muted: rgba(255, 255, 255, 0.7);
+  --color-text-subtle: rgba(255, 255, 255, 0.5);
+  --color-border: rgba(255, 255, 255, 0.12);
+  --color-border-strong: rgba(255, 255, 255, 0.2);
+
+  --color-gray-100: rgba(255, 255, 255, 0.06);
+  --color-gray-200: rgba(255, 255, 255, 0.12);
+  --color-gray-300: rgba(255, 255, 255, 0.2);
+  --color-gray-400: rgba(255, 255, 255, 0.5);
+  --color-gray-500: rgba(255, 255, 255, 0.7);
+  --color-gray-600: rgba(255, 255, 255, 0.85);
+  --color-gray-700: #FFFFFF;
+
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 10px rgba(0, 0, 0, 0.5), 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+html[data-theme="dark"] body {
+  color: var(--color-text);
+  background-color: var(--color-bg);
+}
+
+html[data-theme="dark"] .card,
+html[data-theme="dark"] .auth-form,
+html[data-theme="dark"] .admin-user-card,
+html[data-theme="dark"] .dash-empty-bets,
+html[data-theme="dark"] .dash-hot-placeholder,
+html[data-theme="dark"] .bet-hero.card,
+html[data-theme="dark"] .share-section.card,
+html[data-theme="dark"] .bet-options.card,
+html[data-theme="dark"] .bet-participants.card,
+html[data-theme="dark"] .bet-join-section.card,
+html[data-theme="dark"] .bet-detail-page .card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+}
+
+html[data-theme="dark"] .header {
+  background-color: var(--color-surface);
+  border-bottom-color: var(--color-border);
+  color: var(--color-text);
+}
+
+html[data-theme="dark"] .bottom-nav {
+  background-color: var(--color-surface);
+  border-top-color: var(--color-border);
+}
+
+html[data-theme="dark"] .nav-item {
+  color: var(--color-text-subtle);
+}
+
+html[data-theme="dark"] .nav-item.active {
+  color: var(--color-primary);
+}
+
+html[data-theme="dark"] input[type="text"],
+html[data-theme="dark"] input[type="email"],
+html[data-theme="dark"] input[type="password"],
+html[data-theme="dark"] input[type="tel"],
+html[data-theme="dark"] input[type="number"],
+html[data-theme="dark"] input[type="date"],
+html[data-theme="dark"] select,
+html[data-theme="dark"] textarea {
+  background-color: var(--color-surface-alt);
+  color: var(--color-text);
+  border-color: var(--color-border-strong);
+}
+
+html[data-theme="dark"] .form-group label {
+  color: var(--color-text-muted);
+}
+
+html[data-theme="dark"] .btn-secondary {
+  color: var(--color-text);
+  border-color: var(--color-border-strong);
+}
+
+html[data-theme="dark"] .btn-secondary:hover:not(:disabled) {
+  background-color: var(--color-surface-alt);
+}
+
+html[data-theme="dark"] .auth-page {
+  background-color: var(--color-bg);
+}
+
+html[data-theme="dark"] .header-back {
+  color: var(--color-text);
+}
+
+html[data-theme="dark"] .header-back:hover {
+  background-color: var(--color-surface-alt);
+}
+
+html[data-theme="dark"] .theme-toggle {
+  color: var(--color-primary);
+}
+
+html[data-theme="dark"] .birth-date-row select {
+  background-color: var(--color-surface-alt);
+  color: var(--color-text);
+  border-color: var(--color-border-strong);
+}
+
+html[data-theme="dark"] .transaction-item {
+  border-bottom-color: var(--color-border);
+}
+
+html[data-theme="dark"] .pix-code {
+  background-color: var(--color-surface-alt);
+  color: var(--color-text);
+}
+
+html[data-theme="dark"] .alert-error {
+  background-color: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+}
+
+html[data-theme="dark"] .alert-success {
+  background-color: rgba(34, 197, 94, 0.15);
+  border-color: rgba(34, 197, 94, 0.4);
+  color: #86efac;
+}
+
+/* ===== Theme toggle button ===== */
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background-color: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.theme-toggle:hover {
+  background-color: var(--color-surface-alt);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.header-admin-btn {
+  margin-left: 0 !important;
 }
 
 /* ===== Reset ===== */
@@ -2460,4 +2637,308 @@ input::placeholder {
 
 .btn-share-card svg {
   display: block;
+}
+
+/* ===== Header back button ===== */
+.header-back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background-color: transparent;
+  border: none;
+  color: var(--color-navy);
+  cursor: pointer;
+  border-radius: 50%;
+  margin-right: 4px;
+  transition: background-color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.header-back:hover {
+  background-color: var(--color-gray-100);
+}
+
+.header-back:active {
+  background-color: var(--color-gray-200);
+}
+
+/* ===== Admin users — card list (mobile-first) ===== */
+.admin-users-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.admin-user-card {
+  background-color: var(--color-white);
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  box-shadow: var(--shadow);
+}
+
+.admin-user-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--color-gray-100);
+}
+
+.admin-user-identity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.admin-user-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-navy);
+}
+
+.admin-user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.admin-user-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+}
+
+.admin-user-label {
+  color: var(--color-gray-500);
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.admin-user-value {
+  color: var(--color-navy);
+  font-weight: 500;
+  text-align: right;
+  word-break: break-all;
+}
+
+.admin-user-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.admin-user-actions .btn-action,
+.admin-user-actions .admin-confirm-group {
+  flex: 1;
+  min-width: max-content;
+}
+
+@media (min-width: 768px) {
+  .admin-users-list {
+    gap: 14px;
+  }
+  .admin-user-card {
+    padding: 18px 20px;
+  }
+}
+
+/* ===== Header admin shortcut ===== */
+.header-content {
+  position: relative;
+}
+
+.header-admin-btn {
+  margin-left: auto;
+  padding: 6px 14px;
+  background-color: var(--color-navy);
+  color: var(--color-primary);
+  border: none;
+  border-radius: 100px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.header-admin-btn:hover {
+  background-color: var(--color-navy-light);
+}
+
+/* ===== Dark theme — text color overrides for readability ===== */
+html[data-theme="dark"] h1,
+html[data-theme="dark"] h2,
+html[data-theme="dark"] h3,
+html[data-theme="dark"] h4,
+html[data-theme="dark"] h5,
+html[data-theme="dark"] h6 {
+  color: var(--color-text);
+}
+
+html[data-theme="dark"] a {
+  color: var(--color-primary);
+}
+
+html[data-theme="dark"] .stat-label,
+html[data-theme="dark"] .stat-mini-label,
+html[data-theme="dark"] .dash-stat-label,
+html[data-theme="dark"] .profile-info-label,
+html[data-theme="dark"] .admin-user-label,
+html[data-theme="dark"] .transaction-date,
+html[data-theme="dark"] .balance-label,
+html[data-theme="dark"] .dash-balance-label,
+html[data-theme="dark"] .empty-bets-subtitle,
+html[data-theme="dark"] .auth-subtitle,
+html[data-theme="dark"] .welcome-section p,
+html[data-theme="dark"] .pix-instruction,
+html[data-theme="dark"] .bet-meta-item,
+html[data-theme="dark"] .bet-meta-divider,
+html[data-theme="dark"] .bet-card-meta,
+html[data-theme="dark"] .option-count,
+html[data-theme="dark"] .empty-state,
+html[data-theme="dark"] .dash-empty-subtitle,
+html[data-theme="dark"] .dash-section-link,
+html[data-theme="dark"] .section-link,
+html[data-theme="dark"] .admin-page-indicator,
+html[data-theme="dark"] .admin-confirm-text {
+  color: var(--color-text-muted);
+}
+
+html[data-theme="dark"] .stat-value,
+html[data-theme="dark"] .stat-mini-value,
+html[data-theme="dark"] .dash-stat-value,
+html[data-theme="dark"] .dash-balance-value,
+html[data-theme="dark"] .balance-value,
+html[data-theme="dark"] .profile-info-value,
+html[data-theme="dark"] .profile-name,
+html[data-theme="dark"] .welcome-section h1,
+html[data-theme="dark"] .hero-name,
+html[data-theme="dark"] .cta-title,
+html[data-theme="dark"] .admin-user-name,
+html[data-theme="dark"] .admin-user-value,
+html[data-theme="dark"] .bet-hero-title,
+html[data-theme="dark"] .bet-card-title,
+html[data-theme="dark"] .participant-name,
+html[data-theme="dark"] .transaction-type,
+html[data-theme="dark"] .option-text,
+html[data-theme="dark"] .empty-bets-title,
+html[data-theme="dark"] .dash-empty-title,
+html[data-theme="dark"] .section-title,
+html[data-theme="dark"] .dash-section-title,
+html[data-theme="dark"] .admin-page-title,
+html[data-theme="dark"] .logo-text,
+html[data-theme="dark"] .auth-title {
+  color: var(--color-text);
+}
+
+html[data-theme="dark"] .profile-avatar {
+  background-color: var(--color-primary);
+  color: var(--color-navy);
+}
+
+html[data-theme="dark"] .btn-secondary,
+html[data-theme="dark"] .empty-bets-subtitle + .btn {
+  color: var(--color-text);
+}
+
+html[data-theme="dark"] .option-item,
+html[data-theme="dark"] .participant-item {
+  border-color: var(--color-border);
+}
+
+html[data-theme="dark"] .transaction-amount.positive {
+  color: #4ade80;
+}
+
+html[data-theme="dark"] .transaction-amount.negative {
+  color: #f87171;
+}
+
+html[data-theme="dark"] .category-tag {
+  background-color: var(--color-surface-alt);
+  color: var(--color-text);
+}
+
+html[data-theme="dark"] .auth-logo img,
+html[data-theme="dark"] .logo-image {
+  filter: none;
+}
+
+html[data-theme="dark"] .featured-placeholder,
+html[data-theme="dark"] .dash-hot-placeholder {
+  border-color: var(--color-border);
+  color: var(--color-text-subtle);
+}
+
+html[data-theme="dark"] .admin-table th {
+  background-color: var(--color-surface-alt);
+  color: var(--color-text);
+}
+
+html[data-theme="dark"] .admin-table td {
+  color: var(--color-text);
+  border-bottom-color: var(--color-border);
+}
+
+/* ===== Dark theme — admin stat card text ===== */
+html[data-theme="dark"] .admin-stat-label {
+  color: var(--color-text-muted);
+}
+
+html[data-theme="dark"] .admin-stat-value {
+  color: var(--color-text);
+}
+
+html[data-theme="dark"] .admin-quick-link-title,
+html[data-theme="dark"] .admin-quick-link-desc {
+  color: var(--color-text);
+}
+
+html[data-theme="dark"] .admin-quick-link-desc {
+  color: var(--color-text-muted);
+}
+
+/* ===== Dark theme — keep button text per brand rules ===== */
+html[data-theme="dark"] .btn-primary,
+html[data-theme="dark"] a.btn-primary {
+  color: var(--color-navy);
+}
+
+html[data-theme="dark"] .dash-hero-action,
+html[data-theme="dark"] .dash-empty-cta,
+html[data-theme="dark"] .action-card {
+  color: var(--color-navy);
+}
+
+html[data-theme="dark"] a.action-card,
+html[data-theme="dark"] a.action-card * {
+  color: var(--color-navy);
+}
+
+html[data-theme="dark"] .btn-whatsapp,
+html[data-theme="dark"] a.btn-whatsapp {
+  color: var(--color-white);
+}
+
+/* ===== Dark theme — action cards (dashboard quick actions) ===== */
+html[data-theme="dark"] .action-card,
+html[data-theme="dark"] a.action-card,
+html[data-theme="dark"] a.action-card *,
+html[data-theme="dark"] .action-label {
+  color: var(--color-text) !important;
+}
+
+html[data-theme="dark"] .action-card:hover {
+  background-color: var(--color-surface-alt);
 }

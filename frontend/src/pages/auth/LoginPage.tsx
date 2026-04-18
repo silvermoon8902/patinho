@@ -1,22 +1,27 @@
 import { useState, useEffect, FormEvent } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useTheme } from "@/hooks/useTheme";
 import patinhoLogo from "@/assets/patinho-logo.png";
+import patinhoLogoWhite from "@/assets/patinho-logo-white.png";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const { login, isAuthenticated, loading, error, resetError } = useAuth();
+  const { login, isAuthenticated, user, loading, error, resetError } = useAuth();
+  const { theme } = useTheme();
+  const logoSrc = theme === "dark" ? patinhoLogoWhite : patinhoLogo;
   const navigate = useNavigate();
   const location = useLocation();
 
-  const from = (location.state as { from?: string })?.from || "/wallet";
+  const explicitFrom = (location.state as { from?: string })?.from;
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate(from, { replace: true });
+      const destination = explicitFrom || (user?.is_admin ? "/admin" : "/");
+      navigate(destination, { replace: true });
     }
-  }, [isAuthenticated, navigate, from]);
+  }, [isAuthenticated, user, navigate, explicitFrom]);
 
   useEffect(() => {
     resetError();
@@ -31,7 +36,7 @@ export default function LoginPage() {
     <div className="auth-page">
       <div className="auth-container">
         <div className="auth-logo">
-          <img src={patinhoLogo} alt="Patinho" className="auth-logo-image" />
+          <img src={logoSrc} alt="Patinho" className="auth-logo-image" />
           <p className="auth-subtitle">Desafios entre Amigos</p>
         </div>
 

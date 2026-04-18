@@ -64,89 +64,84 @@ export default function AdminUsersPage() {
       )}
 
       {!loading && users.length > 0 && (
-        <div className="admin-table-wrapper">
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>Username</th>
-                <th>Email</th>
-                <th>Telefone</th>
-                <th>Pontos</th>
-                <th>Status</th>
-                <th>Acoes</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((user) => (
-                <tr key={user.id}>
-                  <td>
-                    <span>{user.username}</span>
-                    {user.is_admin && (
-                      <span className="admin-badge">Admin</span>
+        <div className="admin-users-list">
+          {users.map((user) => (
+            <div key={user.id} className="admin-user-card">
+              <div className="admin-user-head">
+                <div className="admin-user-identity">
+                  <span className="admin-user-name">{user.username}</span>
+                  {user.is_admin && (
+                    <span className="admin-badge">Admin</span>
+                  )}
+                </div>
+                <span
+                  className={
+                    user.is_active
+                      ? "status-badge status-active"
+                      : "status-badge status-inactive"
+                  }
+                >
+                  {user.is_active ? "Ativo" : "Inativo"}
+                </span>
+              </div>
+
+              <div className="admin-user-info">
+                <div className="admin-user-row">
+                  <span className="admin-user-label">E-mail</span>
+                  <span className="admin-user-value">{user.email}</span>
+                </div>
+                <div className="admin-user-row">
+                  <span className="admin-user-label">Telefone</span>
+                  <span className="admin-user-value">{user.phone || "-"}</span>
+                </div>
+                <div className="admin-user-row">
+                  <span className="admin-user-label">Pontos</span>
+                  <span className="admin-user-value">{user.total_points}</span>
+                </div>
+              </div>
+
+              <div className="admin-user-actions">
+                <button
+                  className={
+                    user.is_active
+                      ? "btn-action btn-action-danger"
+                      : "btn-action btn-action-success"
+                  }
+                  onClick={() => handleToggleActive(user.id, user.is_active)}
+                >
+                  {user.is_active ? "Desativar" : "Ativar"}
+                </button>
+                {!user.is_admin && (
+                  <>
+                    {confirmAdminId === user.id ? (
+                      <span className="admin-confirm-group">
+                        <span className="admin-confirm-text">Confirmar?</span>
+                        <button
+                          className="btn-action btn-action-success"
+                          onClick={() => handleMakeAdmin(user.id)}
+                        >
+                          Sim
+                        </button>
+                        <button
+                          className="btn-action btn-action-secondary"
+                          onClick={() => setConfirmAdminId(null)}
+                        >
+                          Nao
+                        </button>
+                      </span>
+                    ) : (
+                      <button
+                        className="btn-action btn-action-primary"
+                        onClick={() => setConfirmAdminId(user.id)}
+                      >
+                        Tornar Admin
+                      </button>
                     )}
-                  </td>
-                  <td>{user.email}</td>
-                  <td>{user.phone}</td>
-                  <td>{user.total_points}</td>
-                  <td>
-                    <span
-                      className={
-                        user.is_active
-                          ? "status-badge status-active"
-                          : "status-badge status-inactive"
-                      }
-                    >
-                      {user.is_active ? "Ativo" : "Inativo"}
-                    </span>
-                  </td>
-                  <td className="admin-actions-cell">
-                    <button
-                      className={
-                        user.is_active
-                          ? "btn-action btn-action-danger"
-                          : "btn-action btn-action-success"
-                      }
-                      onClick={() =>
-                        handleToggleActive(user.id, user.is_active)
-                      }
-                    >
-                      {user.is_active ? "Desativar" : "Ativar"}
-                    </button>
-                    {!user.is_admin && (
-                      <>
-                        {confirmAdminId === user.id ? (
-                          <span className="admin-confirm-group">
-                            <span className="admin-confirm-text">
-                              Confirmar?
-                            </span>
-                            <button
-                              className="btn-action btn-action-success"
-                              onClick={() => handleMakeAdmin(user.id)}
-                            >
-                              Sim
-                            </button>
-                            <button
-                              className="btn-action btn-action-secondary"
-                              onClick={() => setConfirmAdminId(null)}
-                            >
-                              Nao
-                            </button>
-                          </span>
-                        ) : (
-                          <button
-                            className="btn-action btn-action-primary"
-                            onClick={() => setConfirmAdminId(user.id)}
-                          >
-                            Tornar Admin
-                          </button>
-                        )}
-                      </>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
