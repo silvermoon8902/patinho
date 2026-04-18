@@ -34,7 +34,7 @@ export default function CreateBetPage() {
   const [options, setOptions] = useState(["", ""]);
 
   // Step 3: Rules
-  const [resolutionType, setResolutionType] = useState<"auto" | "voting">("voting");
+  const [resolutionType, setResolutionType] = useState<"auto_api" | "voting">("voting");
   const [entryAmount, setEntryAmount] = useState(MIN_ENTRY);
   const [maxParticipants, setMaxParticipants] = useState(100);
   const [closesAt, setClosesAt] = useState("");
@@ -220,11 +220,11 @@ export default function CreateBetPage() {
               className="form-select"
               value={resolutionType}
               onChange={(e) =>
-                setResolutionType(e.target.value as "auto" | "voting")
+                setResolutionType(e.target.value as "auto_api" | "voting")
               }
             >
-              <option value="voting">Votacao</option>
-              <option value="auto">Automatico</option>
+              <option value="voting">Votacao (Desafio Personalizado)</option>
+              <option value="auto_api">Automatico (Previsao Esportiva)</option>
             </select>
           </div>
           <div className="form-group">
@@ -294,7 +294,7 @@ export default function CreateBetPage() {
             <div className="review-item">
               <span className="review-label">Resolucao</span>
               <span className="review-value">
-                {resolutionType === "voting" ? "Votacao" : "Automatico"}
+                {resolutionType === "voting" ? "Votacao" : "Automatico (API)"}
               </span>
             </div>
             <div className="review-item">

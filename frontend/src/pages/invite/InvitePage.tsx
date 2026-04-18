@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch, RootState } from "@/store";
 import { fetchBetByInvite, joinBet, clearBetError } from "@/store/betSlice";
+import { formatCurrency } from "@/utils/format";
 
 const CATEGORY_LABELS: Record<string, string> = {
   football: "Futebol",
@@ -12,10 +13,6 @@ const CATEGORY_LABELS: Record<string, string> = {
   politics: "Politica",
   custom: "Outro",
 };
-
-function formatCurrency(value: number): string {
-  return `R$ ${value.toFixed(2).replace(".", ",")}`;
-}
 
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleString("pt-BR");

@@ -55,16 +55,6 @@ async def distribute_prizes(
             detail="Bet not found",
         )
 
-    # Load all participations
-    result = await db.execute(
-        select(Participation).where(Participation.bet_id == bet_id)
-    )
-    participations = list(result.scalars().all())
-
-    if not participations:
-        logger.warning("No participations found for bet %s", bet_id)
-        return
-
     # Validate winning option belongs to this bet
     winning_option = await db.get(BetOption, winning_option_id)
     if not winning_option or winning_option.bet_id != bet_id:
@@ -72,6 +62,21 @@ async def distribute_prizes(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid winning option for this bet",
         )
+
+    # Load all participations
+    result = await db.execute(
+        select(Participation).where(Participation.bet_id == bet_id)
+    )
+    participations = list(result.scalars().all())
+
+    if not participations:
+        logger.warning("No participations found for bet %s, marking as resolved with no distribution", bet_id)
+        winning_option.is_winner = True
+        bet.status = BetStatus.RESOLVED
+        bet.resolved_at = datetime.now(timezone.utc)
+        bet.chat_closes_at = bet.resolved_at + timedelta(hours=2)
+        await db.flush()
+        return
 
     # Calculate prize pool
     prize_pool = sum(p.amount for p in participations)

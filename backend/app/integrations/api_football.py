@@ -80,25 +80,24 @@ class APIFootballClient:
 
     async def get_fixtures(self, fixture_ids: list[str]) -> list[dict]:
         """
-        Fetch multiple fixtures by ID.
-        GET /v3/fixtures?ids=123-456-789 (dash-separated for batch).
+        Fetch fixtures by ID. Fetches one at a time (free plan doesn't support
+        batch `ids=` parameter). Cached per fixture.
         """
         if not fixture_ids:
             return []
 
-        ids_param = "-".join(str(fid) for fid in fixture_ids)
-        cache_key = f"apifootball:fixtures:{ids_param}"
+        results: list[dict] = []
+        for fid in fixture_ids:
+            cache_key = f"apifootball:fixture:{fid}"
+            data = await self._cached_get(
+                cache_key,
+                f"{self.base_url}/fixtures",
+                {"id": str(fid)},
+            )
+            if data:
+                results.extend(data.get("response", []))
 
-        data = await self._cached_get(
-            cache_key,
-            f"{self.base_url}/fixtures",
-            {"ids": ids_param},
-        )
-
-        if not data:
-            return []
-
-        return data.get("response", [])
+        return results
 
     async def search_fixtures(self, league_id: int, date: str) -> list[dict]:
         """
@@ -143,22 +142,26 @@ class APIFootballClient:
         home_score = goals.get("home", 0) or 0
         away_score = goals.get("away", 0) or 0
 
-        if home_score > away_score:
-            winner = "Home"
-        elif away_score > home_score:
-            winner = "Away"
-        else:
-            winner = "Draw"
-
         teams = fixture.get("teams", {})
         home_team = teams.get("home", {}).get("name", "Home")
         away_team = teams.get("away", {}).get("name", "Away")
+
+        if home_score > away_score:
+            winner = home_team
+            winner_side = "Home"
+        elif away_score > home_score:
+            winner = away_team
+            winner_side = "Away"
+        else:
+            winner = "Empate"
+            winner_side = "Draw"
 
         return {
             "home_score": home_score,
             "away_score": away_score,
             "status": short_status,
             "winner": winner,
+            "winner_side": winner_side,
             "home_team": home_team,
             "away_team": away_team,
         }

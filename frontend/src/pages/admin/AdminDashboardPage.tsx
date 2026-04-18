@@ -3,13 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { Link } from "react-router-dom";
 import type { RootState, AppDispatch } from "@/store";
 import { fetchDashboardStats } from "@/store/adminSlice";
-
-function formatCurrency(value: number): string {
-  return value.toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  });
-}
+import { formatCurrency } from "@/utils/format";
 
 export default function AdminDashboardPage() {
   const dispatch = useDispatch<AppDispatch>();

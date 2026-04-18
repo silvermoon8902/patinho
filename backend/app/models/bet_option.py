@@ -20,7 +20,7 @@ class BetOption(Base):
         DateTime(timezone=True), server_default=func.now()
     )
 
-    bet: Mapped["Bet"] = relationship(back_populates="options")
+    bet: Mapped["Bet"] = relationship(back_populates="options", foreign_keys=[bet_id])
     participations: Mapped[list["Participation"]] = relationship(
         back_populates="bet_option"
     )

@@ -15,6 +15,7 @@ import { fetchMessages, clearChat } from "@/store/chatSlice";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { useToast } from "@/components/shared/Toast";
 import ChatWindow from "@/components/chat/ChatWindow";
+import { formatCurrency } from "@/utils/format";
 
 const STATUS_LABELS: Record<string, string> = {
   open: "Aberta",
@@ -34,10 +35,6 @@ const CATEGORY_LABELS: Record<string, string> = {
   politics: "Politica",
   custom: "Outro",
 };
-
-function formatCurrency(value: number): string {
-  return `R$ ${value.toFixed(2).replace(".", ",")}`;
-}
 
 function getTimeRemaining(closesAt: string): string {
   const now = new Date();

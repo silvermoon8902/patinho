@@ -7,6 +7,7 @@ import {
   forceCancelBet,
 } from "@/store/adminSlice";
 import type { AdminBet } from "@/store/adminSlice";
+import { formatCurrency } from "@/utils/format";
 
 const STATUS_OPTIONS = [
   { value: "", label: "Todos" },
@@ -27,13 +28,6 @@ const STATUS_LABELS: Record<string, string> = {
   resolved: "Resolvida",
   cancelled: "Cancelada",
 };
-
-function formatCurrency(value: number): string {
-  return value.toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  });
-}
 
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString("pt-BR");

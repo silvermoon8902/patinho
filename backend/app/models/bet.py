@@ -66,8 +66,13 @@ class Bet(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
 
-    options: Mapped[list["BetOption"]] = relationship(back_populates="bet")
+    options: Mapped[list["BetOption"]] = relationship(
+        back_populates="bet", foreign_keys="BetOption.bet_id"
+    )
     participations: Mapped[list["Participation"]] = relationship(
         back_populates="bet"
     )
     creator: Mapped["User"] = relationship(foreign_keys=[creator_id])
+    declared_winner_option: Mapped["BetOption | None"] = relationship(
+        foreign_keys=[declared_winner_option_id], post_update=True
+    )

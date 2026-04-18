@@ -4,13 +4,7 @@ import { useSelector, useDispatch } from "react-redux";
 import type { RootState, AppDispatch } from "@/store";
 import { fetchWallet } from "@/store/walletSlice";
 import { useAuth } from "@/hooks/useAuth";
-
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  }).format(value);
-}
+import { formatCurrency } from "@/utils/format";
 
 export default function DashboardPage() {
   const dispatch = useDispatch<AppDispatch>();
