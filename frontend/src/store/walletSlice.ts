@@ -24,8 +24,8 @@ export interface PaymentResponse {
   id: string;
   amount: number;
   status: string;
-  pix_qr_code: string;
-  pix_qr_code_base64: string;
+  pix_qr_code: string | null;
+  pix_copy_paste: string | null;
   expires_at: string;
 }
 

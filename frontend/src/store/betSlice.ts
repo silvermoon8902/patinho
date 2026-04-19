@@ -52,7 +52,7 @@ interface CreateBetPayload {
   description?: string;
   category: string;
   options: string[];
-  resolution_type: "auto" | "voting";
+  resolution_type: "auto_api" | "voting";
   entry_amount: number;
   max_participants: number;
   closes_at: string;
