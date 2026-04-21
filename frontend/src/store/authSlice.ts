@@ -9,6 +9,9 @@ export interface UserResponse {
   is_admin: boolean;
   total_points: number;
   created_at: string;
+  self_excluded_at?: string | null;
+  monthly_deposit_cap?: string | null;
+  monthly_participation_cap?: string | null;
 }
 
 interface AuthState {
