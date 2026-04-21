@@ -388,21 +388,31 @@ export default function CreateBetPage() {
   const canAdvanceSport = (): boolean => {
     switch (step) {
       case 0:
-        return sportKind === "football" || sportKind === "f1";
+        return (
+          sportKind === "football" ||
+          sportKind === "f1" ||
+          sportKind === "tennis"
+        );
       case 1:
         if (sportKind === "football") {
           return !!selectedLeagueId && !!selectedFixtureId;
         }
-        return !!selectedRaceId;
+        if (sportKind === "f1") {
+          return !!selectedRaceId;
+        }
+        return !!selectedTennisMatchId;
       case 2:
         if (sportKind === "football") {
           return !!selectedTemplate;
         }
-        return (
-          selectedTemplate === "f1_winner" &&
-          selectedDriverIds.length >= MIN_DRIVERS &&
-          selectedDriverIds.length <= MAX_DRIVERS
-        );
+        if (sportKind === "f1") {
+          return (
+            selectedTemplate === "f1_winner" &&
+            selectedDriverIds.length >= MIN_DRIVERS &&
+            selectedDriverIds.length <= MAX_DRIVERS
+          );
+        }
+        return selectedTemplate === "tennis_winner";
       case 3:
         return sportRulesError === null;
       default:
@@ -564,6 +574,23 @@ export default function CreateBetPage() {
       if (createSportBet.fulfilled.match(result)) {
         navigate(`/bets/${result.payload.id}`);
       }
+      return;
+    }
+
+    if (sportKind === "tennis") {
+      if (!selectedTennisMatchId) return;
+      const result = await dispatch(
+        createSportBet({
+          template: "tennis_winner",
+          tennis_match_id: selectedTennisMatchId,
+          entry_amount: sportEntryAmount,
+          max_participants: sportMaxParticipants,
+          league_id: privateLeagueId || null,
+        })
+      );
+      if (createSportBet.fulfilled.match(result)) {
+        navigate(`/bets/${result.payload.id}`);
+      }
     }
   };
 
@@ -592,12 +619,17 @@ export default function CreateBetPage() {
         .map((id) => drivers.find((d) => d.driver_id === id)?.name)
         .filter((n): n is string => !!n);
     }
+    if (sportKind === "tennis" && selectedTennisMatch) {
+      return [selectedTennisMatch.player1_name, selectedTennisMatch.player2_name];
+    }
     return [];
   })();
 
   const sportEventDate: string | null = (() => {
     if (sportKind === "football" && selectedFixture) return selectedFixture.date;
     if (sportKind === "f1" && selectedRace) return selectedRace.date;
+    if (sportKind === "tennis" && selectedTennisMatch)
+      return selectedTennisMatch.date;
     return null;
   })();
 
@@ -611,6 +643,9 @@ export default function CreateBetPage() {
         selectedRace.circuit_name,
       ].filter(Boolean);
       return parts.join(" - ") || "Corrida";
+    }
+    if (sportKind === "tennis" && selectedTennisMatch) {
+      return `${selectedTennisMatch.player1_name} vs ${selectedTennisMatch.player2_name}`;
     }
     return "-";
   })();
@@ -719,6 +754,16 @@ export default function CreateBetPage() {
                 Aposte no piloto que vai vencer a próxima corrida do
                 campeonato.
               </p>
+            </button>
+            <button
+              type="button"
+              className={`sport-template-card ${
+                sportKind === "tennis" ? "sport-template-card-active" : ""
+              }`}
+              onClick={() => pickSportKind("tennis")}
+            >
+              <h4>Tênis</h4>
+              <p>Aposte no vencedor de partidas ATP ou WTA.</p>
             </button>
           </div>
         </div>
@@ -873,6 +918,82 @@ export default function CreateBetPage() {
                 </div>
                 <div className="sport-fixture-date">
                   {formatFixtureDate(r.date)}
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {flow === "sport" && step === 1 && sportKind === "tennis" && (
+        <div className="create-bet-form card">
+          <div className="form-group">
+            <label>Circuito</label>
+            <div className="sport-template-list">
+              <button
+                type="button"
+                className={`sport-template-card ${
+                  selectedTennisTour === "ATP"
+                    ? "sport-template-card-active"
+                    : ""
+                }`}
+                onClick={() => pickTennisTour("ATP")}
+              >
+                <h4>ATP</h4>
+                <p>Circuito masculino</p>
+              </button>
+              <button
+                type="button"
+                className={`sport-template-card ${
+                  selectedTennisTour === "WTA"
+                    ? "sport-template-card-active"
+                    : ""
+                }`}
+                onClick={() => pickTennisTour("WTA")}
+              >
+                <h4>WTA</h4>
+                <p>Circuito feminino</p>
+              </button>
+            </div>
+          </div>
+
+          <p className="form-hint">Próximas partidas:</p>
+          {tennisMatchesLoading && (
+            <p className="form-hint">Carregando partidas...</p>
+          )}
+          {tennisMatchesError && (
+            <div className="alert alert-error">{tennisMatchesError}</div>
+          )}
+          {!tennisMatchesLoading &&
+            !tennisMatchesError &&
+            tennisMatches.length === 0 && (
+              <div className="alert alert-info">
+                Nenhuma partida futura encontrada neste circuito.
+              </div>
+            )}
+          <div className="sport-fixture-list">
+            {tennisMatches.map((m) => (
+              <button
+                key={m.match_id}
+                type="button"
+                className={`sport-fixture-card ${
+                  selectedTennisMatchId === m.match_id
+                    ? "sport-fixture-card-active"
+                    : ""
+                }`}
+                onClick={() => setSelectedTennisMatchId(m.match_id)}
+              >
+                <div className="sport-fixture-teams">
+                  <div className="sport-fixture-team">
+                    <span>{m.player1_name}</span>
+                  </div>
+                  <span className="sport-fixture-vs">vs</span>
+                  <div className="sport-fixture-team">
+                    <span>{m.player2_name}</span>
+                  </div>
+                </div>
+                <div className="sport-fixture-date">
+                  {formatFixtureDate(m.date)}
                 </div>
               </button>
             ))}
@@ -1051,7 +1172,11 @@ export default function CreateBetPage() {
             <div className="review-item">
               <span className="review-label">Esporte</span>
               <span className="review-value">
-                {sportKind === "football" ? "Futebol" : "Fórmula 1"}
+                {sportKind === "football"
+                  ? "Futebol"
+                  : sportKind === "f1"
+                  ? "Fórmula 1"
+                  : "Tênis"}
               </span>
             </div>
             {sportKind === "football" && (
@@ -1068,9 +1193,19 @@ export default function CreateBetPage() {
                 <span className="review-value">{selectedSeason}</span>
               </div>
             )}
+            {sportKind === "tennis" && (
+              <div className="review-item">
+                <span className="review-label">Circuito</span>
+                <span className="review-value">{selectedTennisTour}</span>
+              </div>
+            )}
             <div className="review-item">
               <span className="review-label">
-                {sportKind === "football" ? "Partida" : "Corrida"}
+                {sportKind === "football"
+                  ? "Partida"
+                  : sportKind === "f1"
+                  ? "Corrida"
+                  : "Partida"}
               </span>
               <span className="review-value">{sportEventTitle}</span>
             </div>
