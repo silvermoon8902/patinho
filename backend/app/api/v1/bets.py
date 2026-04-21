@@ -358,26 +358,6 @@ async def get_bet_by_invite(
     return _build_bet_response(bet)
 
 
-async def _require_league_access(
-    db: AsyncSession, bet: Bet, user_id: UUID
-) -> None:
-    """
-    Hide league-scoped bets from non-members and from the creator's own
-    creations they were kicked from. Creator of the bet is always allowed
-    (they may need to manage/cancel). Non-league bets pass through.
-    """
-    if bet.league_id is None:
-        return
-    if bet.creator_id == user_id:
-        return
-    if await league_service.is_member(db, bet.league_id, user_id):
-        return
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail="Bet not found",
-    )
-
-
 @router.get("/{bet_id}", response_model=BetDetailResponse)
 async def get_bet_detail(
     bet_id: UUID,
@@ -385,7 +365,7 @@ async def get_bet_detail(
     db: AsyncSession = Depends(get_db),
 ):
     bet = await bet_service.get_bet(db, bet_id)
-    await _require_league_access(db, bet, user.id)
+    await league_service.require_bet_access(db, bet, user.id)
     return _build_detail_response(bet)
 
 
@@ -406,7 +386,7 @@ async def join_bet(
     db: AsyncSession = Depends(get_db),
 ):
     bet = await bet_service.get_bet(db, bet_id)
-    await _require_league_access(db, bet, user.id)
+    await league_service.require_bet_access(db, bet, user.id)
     participation = await bet_service.join_bet(db, user.id, bet_id, data)
     return ParticipationResponse(
         id=participation.id,
@@ -467,7 +447,7 @@ async def create_direct_join(
     db: AsyncSession = Depends(get_db),
 ):
     bet = await bet_service.get_bet(db, bet_id)
-    await _require_league_access(db, bet, user.id)
+    await league_service.require_bet_access(db, bet, user.id)
     payment = await direct_join_service.create_direct_join_payment(
         db, user.id, bet_id, data.bet_option_id, data.amount
     )

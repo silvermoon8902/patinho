@@ -2,7 +2,7 @@ import logging
 from datetime import datetime, timezone
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -62,10 +62,11 @@ async def chat_websocket(websocket: WebSocket, bet_id: UUID, token: str = Query(
 
         # League-scoped bets: non-members cannot listen in on the chat.
         # Creator always allowed (they may need to moderate).
-        if bet.league_id is not None and bet.creator_id != user.id:
-            if not await league_service.is_member(db, bet.league_id, user.id):
-                await websocket.close(code=4004, reason="Bet not found")
-                return
+        try:
+            await league_service.require_bet_access(db, bet, user.id)
+        except HTTPException:
+            await websocket.close(code=4004, reason="Bet not found")
+            return
 
         # Check chat is still open
         now = datetime.now(timezone.utc)
@@ -138,9 +139,8 @@ async def list_messages(
     db: AsyncSession = Depends(get_db),
 ):
     """List chat messages for a bet, paginated."""
-    from fastapi import HTTPException, status
+    from fastapi import status
 
-    # Verify bet exists
     bet = await db.get(Bet, bet_id)
     if not bet:
         raise HTTPException(
@@ -148,12 +148,7 @@ async def list_messages(
             detail="Bet not found",
         )
 
-    if bet.league_id is not None and bet.creator_id != user.id:
-        if not await league_service.is_member(db, bet.league_id, user.id):
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Bet not found",
-            )
+    await league_service.require_bet_access(db, bet, user.id)
 
     result = await db.execute(
         select(ChatMessage)

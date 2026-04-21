@@ -95,6 +95,44 @@ async def is_member(db: AsyncSession, league_id: UUID, user_id: UUID) -> bool:
     return result.scalar_one_or_none() is not None
 
 
+async def require_bet_access(db: AsyncSession, bet, user_id: UUID) -> None:
+    """
+    Raise 404 if `user_id` cannot see this bet.
+
+    Rules:
+      - Non-league bets: always visible (no-op).
+      - League bets: creator always allowed; current league members allowed;
+        existing participants allowed even after leaving the league (so they
+        can see a stake through to resolution).
+
+    Returning 404 (not 403) hides the bet's existence from non-members.
+    """
+    from fastapi import HTTPException, status as http_status
+
+    from app.models.participation import Participation
+
+    if bet.league_id is None:
+        return
+    if bet.creator_id == user_id:
+        return
+    if await is_member(db, bet.league_id, user_id):
+        return
+    # Grace: if the user already has a stake in this bet, keep their access
+    # even if they've since left the league.
+    existing = await db.execute(
+        select(Participation).where(
+            Participation.bet_id == bet.id,
+            Participation.user_id == user_id,
+        )
+    )
+    if existing.scalar_one_or_none() is not None:
+        return
+    raise HTTPException(
+        status_code=http_status.HTTP_404_NOT_FOUND,
+        detail="Bet not found",
+    )
+
+
 async def invite_to_league(
     db: AsyncSession, league_id: UUID, owner_id: UUID, identifier: str
 ) -> str:
