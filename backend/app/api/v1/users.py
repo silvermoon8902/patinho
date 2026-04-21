@@ -108,12 +108,14 @@ async def export_my_data(
     )
     wallet = wallet_result.scalar_one_or_none()
 
-    tx_result = await db.execute(
-        select(WalletTransaction).where(WalletTransaction.wallet_id == wallet.id)
-        if wallet
-        else select(WalletTransaction).where(WalletTransaction.wallet_id == None)  # noqa: E711
-    )
-    transactions = list(tx_result.scalars().all()) if wallet else []
+    transactions: list[WalletTransaction] = []
+    if wallet:
+        tx_result = await db.execute(
+            select(WalletTransaction).where(
+                WalletTransaction.wallet_id == wallet.id
+            )
+        )
+        transactions = list(tx_result.scalars().all())
 
     part_result = await db.execute(
         select(Participation).where(Participation.user_id == user.id)
@@ -144,8 +146,8 @@ async def export_my_data(
             "created_at": user.created_at.isoformat(),
         },
         "wallet": {
-            "balance_available": _decimal(wallet.balance_available) if wallet else None,
-            "balance_locked": _decimal(wallet.balance_locked) if wallet else None,
+            "balance": _decimal(wallet.balance) if wallet else None,
+            "locked_balance": _decimal(wallet.locked_balance) if wallet else None,
         } if wallet else None,
         "transactions": [
             {
@@ -200,7 +202,7 @@ async def delete_my_account(
         select(Wallet).where(Wallet.user_id == user.id)
     )
     wallet = wallet_result.scalar_one_or_none()
-    if wallet and wallet.balance_locked and wallet.balance_locked > Decimal("0"):
+    if wallet and wallet.locked_balance and wallet.locked_balance > Decimal("0"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=(

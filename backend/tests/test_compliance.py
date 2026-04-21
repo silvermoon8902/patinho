@@ -109,8 +109,10 @@ def test_limits_update_and_clear(client):
         headers={"Authorization": f"Bearer {token}"},
     )
     assert r1.status_code == 200
-    assert r1.json()["monthly_deposit_cap"] == "500.00"
-    assert r1.json()["monthly_participation_cap"] == "200.00"
+    body1 = r1.json()
+    # Pydantic serializes Decimal as number (not string)
+    assert float(body1["monthly_deposit_cap"]) == 500
+    assert float(body1["monthly_participation_cap"]) == 200
 
     # clear with 0
     r2 = client.patch(
@@ -119,9 +121,10 @@ def test_limits_update_and_clear(client):
         headers={"Authorization": f"Bearer {token}"},
     )
     assert r2.status_code == 200
-    assert r2.json()["monthly_deposit_cap"] is None
+    body2 = r2.json()
+    assert body2["monthly_deposit_cap"] is None
     # other cap untouched
-    assert r2.json()["monthly_participation_cap"] == "200.00"
+    assert float(body2["monthly_participation_cap"]) == 200
 
 
 def test_self_exclude_deactivates(client):
