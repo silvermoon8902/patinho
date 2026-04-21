@@ -12,6 +12,7 @@ from app.models.bet import Bet
 from app.models.chat_message import ChatMessage
 from app.models.participation import Participation
 from app.models.user import User
+from app.services import league_service
 from app.services.auth_service import get_current_active_user
 from app.utils.security import decode_token
 
@@ -58,6 +59,13 @@ async def chat_websocket(websocket: WebSocket, bet_id: UUID, token: str = Query(
         if not bet:
             await websocket.close(code=4004, reason="Bet not found")
             return
+
+        # League-scoped bets: non-members cannot listen in on the chat.
+        # Creator always allowed (they may need to moderate).
+        if bet.league_id is not None and bet.creator_id != user.id:
+            if not await league_service.is_member(db, bet.league_id, user.id):
+                await websocket.close(code=4004, reason="Bet not found")
+                return
 
         # Check chat is still open
         now = datetime.now(timezone.utc)
@@ -130,14 +138,22 @@ async def list_messages(
     db: AsyncSession = Depends(get_db),
 ):
     """List chat messages for a bet, paginated."""
+    from fastapi import HTTPException, status
+
     # Verify bet exists
     bet = await db.get(Bet, bet_id)
     if not bet:
-        from fastapi import HTTPException, status
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Bet not found",
         )
+
+    if bet.league_id is not None and bet.creator_id != user.id:
+        if not await league_service.is_member(db, bet.league_id, user.id):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Bet not found",
+            )
 
     result = await db.execute(
         select(ChatMessage)

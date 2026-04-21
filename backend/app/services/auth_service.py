@@ -145,6 +145,30 @@ async def get_current_active_user(
     return user
 
 
+_optional_bearer = HTTPBearer(auto_error=False)
+
+
+async def get_current_user_optional(
+    credentials: HTTPAuthorizationCredentials | None = Depends(_optional_bearer),
+    db: AsyncSession = Depends(get_db),
+) -> User | None:
+    """Like get_current_user but returns None instead of raising on missing/invalid token."""
+    if credentials is None:
+        return None
+    try:
+        payload = decode_token(credentials.credentials)
+        if payload.get("type") != "access":
+            return None
+        user_id = UUID(payload.get("sub", ""))
+    except Exception:
+        return None
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if user and user.is_active:
+        return user
+    return None
+
+
 async def get_admin_user(
     user: User = Depends(get_current_active_user),
 ) -> User:

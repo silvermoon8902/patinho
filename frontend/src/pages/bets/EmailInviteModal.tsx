@@ -8,7 +8,7 @@ interface Props {
   onClose: () => void;
 }
 
-type InviteStatus = "sent" | "failed" | "skipped";
+type InviteStatus = "sent" | "failed" | "skipped" | "not_in_league";
 
 interface EmailResult {
   email: string;
@@ -140,7 +140,7 @@ export default function EmailInviteModal({ open, betId, onClose }: Props) {
                   className={`alert alert-${
                     r.status === "sent"
                       ? "success"
-                      : r.status === "skipped"
+                      : r.status === "skipped" || r.status === "not_in_league"
                       ? "info"
                       : "error"
                   }`}
@@ -150,6 +150,8 @@ export default function EmailInviteModal({ open, betId, onClose }: Props) {
                     ? "enviado"
                     : r.status === "skipped"
                     ? "já participa do desafio"
+                    : r.status === "not_in_league"
+                    ? "adicione essa pessoa à liga primeiro"
                     : "falhou"}
                 </div>
               ))}

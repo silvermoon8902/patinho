@@ -11,6 +11,7 @@ from app.integrations.api_f1 import api_f1_client
 from app.integrations.api_football import api_football_client
 from app.integrations.api_tennis import api_tennis_client
 from app.models.bet import Bet
+from app.models.league_membership import LeagueMembership
 from app.models.participation import Participation
 from app.models.user import User
 from app.schemas.bet import (
@@ -42,7 +43,10 @@ from app.services import (
     league_service,
     voting_service,
 )
-from app.services.auth_service import get_current_active_user
+from app.services.auth_service import (
+    get_current_active_user,
+    get_current_user_optional,
+)
 
 router = APIRouter(tags=["bets"])
 
@@ -330,8 +334,27 @@ async def list_user_bets(
 async def get_bet_by_invite(
     invite_token: str,
     db: AsyncSession = Depends(get_db),
+    user: User | None = Depends(get_current_user_optional),
 ):
     bet = await bet_service.get_bet_by_invite(db, invite_token)
+
+    # League-scoped bets require an authenticated member to preview.
+    # Hide their existence from everyone else (return 404) so leaked
+    # invite links don't expose private bet contents.
+    if bet.league_id is not None:
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Bet not found",
+            )
+        if bet.creator_id != user.id and not await league_service.is_member(
+            db, bet.league_id, user.id
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Bet not found",
+            )
+
     return _build_bet_response(bet)
 
 
@@ -551,6 +574,20 @@ async def send_email_invites(
             if u.email:
                 known_emails_lower.add(u.email.lower())
 
+    # For league-scoped bets, only allow inviting existing league members.
+    # Non-members would click the link and be blocked from joining, so the
+    # email would just be misleading. Require league-add-first workflow.
+    league_member_emails_lower: set[str] | None = None
+    if bet.league_id is not None:
+        member_rows = await db.execute(
+            select(User.email)
+            .join(LeagueMembership, LeagueMembership.user_id == User.id)
+            .where(LeagueMembership.league_id == bet.league_id)
+        )
+        league_member_emails_lower = {
+            (e or "").lower() for (e,) in member_rows.all() if e
+        }
+
     results: dict[str, str] = {}
     # Normalize dedupe the requested emails while preserving order
     seen_emails: set[str] = set()
@@ -568,6 +605,13 @@ async def send_email_invites(
     for email in unique_emails:
         if email.lower() in known_emails_lower:
             results[email] = "skipped"
+            continue
+
+        if (
+            league_member_emails_lower is not None
+            and email.lower() not in league_member_emails_lower
+        ):
+            results[email] = "not_in_league"
             continue
 
         try:
