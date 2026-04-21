@@ -80,7 +80,7 @@ export default function Layout() {
       <nav className="bottom-nav">
         <NavLink to="/" className="nav-item" end>
           <HomeIcon size={22} />
-          <span className="nav-label">Inicio</span>
+          <span className="nav-label">Início</span>
         </NavLink>
         <NavLink to="/bets" className="nav-item">
           <DiceIcon size={22} />

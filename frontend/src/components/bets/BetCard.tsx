@@ -6,8 +6,8 @@ import { formatCurrency } from "@/utils/format";
 const STATUS_LABELS: Record<string, string> = {
   open: "Aberta",
   locked: "Travada",
-  pending_confirmation: "Aguardando Confirmacao",
-  voting: "Votacao",
+  pending_confirmation: "Aguardando Confirmação",
+  voting: "Votação",
   disputed: "Disputada",
   resolved: "Encerrada",
   cancelled: "Cancelada",
@@ -16,7 +16,7 @@ const STATUS_LABELS: Record<string, string> = {
 const CATEGORY_LABELS: Record<string, string> = {
   football: "Futebol",
   f1: "Fórmula 1",
-  tennis: "Tenis",
+  tennis: "Tênis",
   bbb: "BBB",
   politics: "Politica",
   custom: "Outro",

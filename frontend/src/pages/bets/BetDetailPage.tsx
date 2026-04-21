@@ -22,8 +22,8 @@ import { formatCurrency } from "@/utils/format";
 const STATUS_LABELS: Record<string, string> = {
   open: "Aberta",
   locked: "Travada",
-  pending_confirmation: "Aguardando Confirmacao",
-  voting: "Votacao",
+  pending_confirmation: "Aguardando Confirmação",
+  voting: "Votação",
   disputed: "Disputada",
   resolved: "Encerrada",
   cancelled: "Cancelada",
@@ -32,7 +32,7 @@ const STATUS_LABELS: Record<string, string> = {
 const CATEGORY_LABELS: Record<string, string> = {
   football: "Futebol",
   f1: "Fórmula 1",
-  tennis: "Tenis",
+  tennis: "Tênis",
   bbb: "BBB",
   politics: "Politica",
   custom: "Outro",
@@ -123,7 +123,7 @@ export default function BetDetailPage() {
       joinBet({ betId, optionId: selectedOption })
     );
     if (joinBet.fulfilled.match(result)) {
-      showToast("Voce entrou no desafio!", "success");
+      showToast("Você entrou no desafio!", "success");
       dispatch(fetchBetDetail(betId));
     }
   };
@@ -161,7 +161,7 @@ export default function BetDetailPage() {
       contestResult({ betId, reason: contestReason.trim() })
     );
     if (contestResult.fulfilled.match(result)) {
-      showToast("Resultado contestado. Votacao iniciada.", "success");
+      showToast("Resultado contestado. Votação iniciada.", "success");
       setShowContestForm(false);
       setContestReason("");
     }
@@ -221,7 +221,7 @@ export default function BetDetailPage() {
     return (
       <div className="bet-detail-page">
         <div className="bets-empty card">
-          <p className="bets-empty-text">Desafio nao encontrado</p>
+          <p className="bets-empty-text">Desafio não encontrado</p>
         </div>
       </div>
     );
@@ -338,7 +338,7 @@ export default function BetDetailPage() {
         <>
           {/* Options section */}
           <div className="bet-options card">
-            <h3>Opcoes</h3>
+            <h3>Opções</h3>
             <div className="options-list">
               {(currentBet.options || []).map((option) => {
                 const isUserPick = userParticipation?.bet_option_id === option.id;
@@ -445,7 +445,7 @@ export default function BetDetailPage() {
               <div className="bet-declared-result card">
                 <h3>Vencedor declarado</h3>
                 <div className="declared-winner-option">
-                  <span className="declared-winner-label">Opcao vencedora:</span>
+                  <span className="declared-winner-label">Opção vencedora:</span>
                   <span className="declared-winner-value">
                     {declaredWinnerOption.label}
                   </span>
@@ -478,10 +478,10 @@ export default function BetDetailPage() {
                     ) : (
                       <div className="contest-form">
                         <div className="form-group">
-                          <label>Motivo da contestacao</label>
+                          <label>Motivo da contestação</label>
                           <textarea
                             className="form-textarea"
-                            placeholder="Explique por que voce contesta este resultado..."
+                            placeholder="Explique por que você contesta este resultado..."
                             value={contestReason}
                             onChange={(e) => setContestReason(e.target.value)}
                             rows={3}
@@ -493,7 +493,7 @@ export default function BetDetailPage() {
                           onClick={handleContest}
                           disabled={!contestReason.trim() || loading}
                         >
-                          {loading ? "Enviando..." : "Enviar contestacao"}
+                          {loading ? "Enviando..." : "Enviar contestação"}
                         </button>
                         <button
                           className="btn btn-secondary btn-full"
@@ -511,7 +511,7 @@ export default function BetDetailPage() {
                 )}
                 {isCreator && (
                   <p className="form-hint">
-                    Aguardando confirmacao dos participantes
+                    Aguardando confirmação dos participantes
                   </p>
                 )}
               </div>
@@ -520,9 +520,9 @@ export default function BetDetailPage() {
           {/* Voting section */}
           {currentBet.status === "voting" && (
             <div className="bet-voting card">
-              <h3>Votacao - Qual o resultado?</h3>
+              <h3>Votação - Qual o resultado?</h3>
               <p className="form-hint">
-                Vote na opcao que voce acredita ser a vencedora.
+                Vote na opção que você acredita ser a vencedora.
               </p>
               <div className="voting-options">
                 {(currentBet.options || []).map((option) => (

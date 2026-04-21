@@ -69,7 +69,7 @@ export const fetchDashboardStats = createAsyncThunk(
     } catch (error: unknown) {
       const err = error as { response?: { data?: { detail?: string } } };
       return rejectWithValue(
-        err.response?.data?.detail || "Erro ao carregar estatisticas"
+        err.response?.data?.detail || "Erro ao carregar estatísticas"
       );
     }
   }
@@ -90,7 +90,7 @@ export const fetchAdminUsers = createAsyncThunk(
     } catch (error: unknown) {
       const err = error as { response?: { data?: { detail?: string } } };
       return rejectWithValue(
-        err.response?.data?.detail || "Erro ao carregar usuarios"
+        err.response?.data?.detail || "Erro ao carregar usuários"
       );
     }
   }
@@ -132,7 +132,7 @@ export const toggleUserActive = createAsyncThunk(
     } catch (error: unknown) {
       const err = error as { response?: { data?: { detail?: string } } };
       return rejectWithValue(
-        err.response?.data?.detail || "Erro ao alterar status do usuario"
+        err.response?.data?.detail || "Erro ao alterar status do usuário"
       );
     }
   }
@@ -149,7 +149,7 @@ export const makeAdmin = createAsyncThunk(
     } catch (error: unknown) {
       const err = error as { response?: { data?: { detail?: string } } };
       return rejectWithValue(
-        err.response?.data?.detail || "Erro ao promover usuario"
+        err.response?.data?.detail || "Erro ao promover usuário"
       );
     }
   }
@@ -164,7 +164,7 @@ export const fetchFeeConfig = createAsyncThunk(
     } catch (error: unknown) {
       const err = error as { response?: { data?: { detail?: string } } };
       return rejectWithValue(
-        err.response?.data?.detail || "Erro ao carregar configuracao de taxa"
+        err.response?.data?.detail || "Erro ao carregar configuração de taxa"
       );
     }
   }

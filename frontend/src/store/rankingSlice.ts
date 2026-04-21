@@ -82,7 +82,7 @@ export const fetchUserRank = createAsyncThunk(
     } catch (error: unknown) {
       const err = error as { response?: { data?: { detail?: string } } };
       return rejectWithValue(
-        err.response?.data?.detail || "Erro ao carregar sua posicao"
+        err.response?.data?.detail || "Erro ao carregar sua posição"
       );
     }
   }

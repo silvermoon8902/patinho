@@ -171,7 +171,7 @@ export default function RankingPage() {
           ))}
         </div>
         {badges.length === 0 && !loading && (
-          <div className="empty-state">Nenhuma conquista disponivel</div>
+          <div className="empty-state">Nenhuma conquista disponível</div>
         )}
       </div>
     </div>
