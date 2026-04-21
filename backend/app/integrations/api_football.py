@@ -117,6 +117,32 @@ class APIFootballClient:
 
         return data.get("response", [])
 
+    async def list_upcoming_fixtures(self, league_id: int, season: int) -> list[dict]:
+        """
+        List all fixtures for a league+season that are not yet finished.
+        Free plan supports fetching by league+season (returns the full season).
+        We filter for upcoming matches (status NS/TBD).
+        """
+        cache_key = f"apifootball:upcoming:{league_id}:{season}"
+        data = await self._cached_get(
+            cache_key,
+            f"{self.base_url}/fixtures",
+            {"league": str(league_id), "season": str(season)},
+        )
+        if not data:
+            return []
+
+        fixtures = data.get("response", [])
+        # Filter upcoming: status NS (Not Started), TBD (To Be Defined), PST (Postponed)
+        upcoming_statuses = {"NS", "TBD", "PST"}
+        upcoming = [
+            f for f in fixtures
+            if f.get("fixture", {}).get("status", {}).get("short") in upcoming_statuses
+        ]
+        # Sort by date ascending
+        upcoming.sort(key=lambda f: f.get("fixture", {}).get("date") or "")
+        return upcoming
+
     async def get_fixture_result(self, fixture_id: str) -> dict | None:
         """
         Get the result of a single fixture.

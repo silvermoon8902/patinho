@@ -1,9 +1,11 @@
+from datetime import datetime, timezone
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
+from app.integrations.api_football import api_football_client
 from app.models.user import User
 from app.schemas.bet import (
     BetCreate,
@@ -22,6 +24,7 @@ from app.schemas.bet import (
     VoteRequest,
 )
 from app.schemas.payment import PaymentResponse
+from app.schemas.sports import BET_TEMPLATES, SportBetCreate
 from app.services import (
     bet_service,
     declare_service,
@@ -87,6 +90,79 @@ async def create_bet(
     return _build_bet_response(bet)
 
 
+@router.post("/sport", response_model=BetResponse, status_code=201)
+async def create_sport_bet(
+    data: SportBetCreate,
+    user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Create a sport bet from an API-Football fixture.
+
+    The caller picks a fixture_id plus a template; we pull fixture
+    details from API-Football, validate kickoff is in the future, then
+    create a bet with pre-defined options and closes_at == kickoff.
+    """
+    if data.template not in BET_TEMPLATES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Template de aposta não suportado: {data.template}",
+        )
+
+    fixtures = await api_football_client.get_fixtures([data.fixture_id])
+    if not fixtures:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Partida não encontrada no API-Football",
+        )
+
+    raw = fixtures[0]
+    fixture = raw.get("fixture", {}) or {}
+    teams = raw.get("teams", {}) or {}
+    league = raw.get("league", {}) or {}
+
+    home_name = (teams.get("home") or {}).get("name")
+    away_name = (teams.get("away") or {}).get("name")
+    raw_date = fixture.get("date")
+
+    if not home_name or not away_name or not raw_date:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Dados da partida incompletos",
+        )
+
+    try:
+        kickoff_at = datetime.fromisoformat(raw_date.replace("Z", "+00:00"))
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Data da partida inválida",
+        )
+
+    if kickoff_at.tzinfo is None:
+        kickoff_at = kickoff_at.replace(tzinfo=timezone.utc)
+
+    if kickoff_at <= datetime.now(timezone.utc):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Esta partida já começou ou terminou",
+        )
+
+    bet = await bet_service.create_sport_bet(
+        db,
+        user.id,
+        fixture_id=str(data.fixture_id),
+        home_team=home_name,
+        away_team=away_name,
+        kickoff_at=kickoff_at,
+        league_name=league.get("name"),
+        template=data.template,
+        entry_amount=data.entry_amount,
+        max_participants=data.max_participants,
+    )
+    return _build_bet_response(bet)
+
+
 @router.get("", response_model=list[BetResponse])
 async def list_user_bets(
     status: str | None = Query(default=None),
@@ -116,6 +192,15 @@ async def get_bet_detail(
 ):
     bet = await bet_service.get_bet(db, bet_id)
     return _build_detail_response(bet)
+
+
+@router.delete("/{bet_id}", status_code=204)
+async def delete_bet(
+    bet_id: UUID,
+    user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await bet_service.delete_bet(db, user.id, bet_id)
 
 
 @router.post("/{bet_id}/join", response_model=ParticipationResponse)

@@ -14,6 +14,10 @@ from app.models.participation import Participation
 from app.schemas.bet import BetCreate, BetJoin
 from app.services import wallet_service
 
+# Draw label used for football match_winner template. Kept as a module-level
+# constant so resolve_sports_bet can match it against the fixture result.
+DRAW_LABEL = "Empate"
+
 
 async def create_bet(db: AsyncSession, user_id: UUID, data: BetCreate) -> Bet:
     """Create a new bet with options. Validates active bet limit."""
@@ -54,6 +58,104 @@ async def create_bet(db: AsyncSession, user_id: UUID, data: BetCreate) -> Bet:
     await db.flush()
 
     for label in data.options:
+        option = BetOption(bet_id=bet.id, label=label)
+        db.add(option)
+
+    await db.flush()
+
+    return await get_bet(db, bet.id)
+
+
+async def create_sport_bet(
+    db: AsyncSession,
+    user_id: UUID,
+    *,
+    fixture_id: str,
+    home_team: str,
+    away_team: str,
+    kickoff_at: datetime,
+    league_name: str | None,
+    template: str,
+    entry_amount: Decimal,
+    max_participants: int,
+) -> Bet:
+    """
+    Create a sport bet wired to an API-Football fixture.
+
+    The options are pre-computed from the template (today only
+    'match_winner' is supported) and the closing time is forced to the
+    fixture kickoff so entries close when the match starts. The bet is
+    tagged with resolution_type=AUTO_API and sports_match_id so the
+    existing Celery resolution pipeline can auto-resolve it.
+    """
+    active_count = await get_active_bet_count(db, user_id)
+    if active_count >= 10:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Maximum of 10 active bets reached",
+        )
+
+    if kickoff_at.tzinfo is None:
+        closes_at = kickoff_at.replace(tzinfo=timezone.utc)
+    else:
+        closes_at = kickoff_at
+
+    if closes_at <= datetime.now(timezone.utc):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Esta partida já começou ou terminou",
+        )
+
+    if template == "match_winner":
+        option_labels = [home_team, DRAW_LABEL, away_team]
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Template de aposta não suportado: {template}",
+        )
+
+    # Defensive dedup in case the two team names happen to collide
+    seen: set[str] = set()
+    unique_labels: list[str] = []
+    for label in option_labels:
+        if label not in seen:
+            seen.add(label)
+            unique_labels.append(label)
+    if len(unique_labels) < 2:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Não foi possível gerar opções válidas para esta partida",
+        )
+
+    title = f"{home_team} vs {away_team}"
+
+    description_parts: list[str] = []
+    if league_name:
+        description_parts.append(league_name)
+    description_parts.append(
+        closes_at.astimezone(timezone.utc).strftime("%d/%m/%Y %H:%M UTC")
+    )
+    description = " - ".join(description_parts)
+
+    invite_token = secrets.token_urlsafe(16)
+
+    bet = Bet(
+        creator_id=user_id,
+        title=title,
+        description=description,
+        invite_token=invite_token,
+        category="football",
+        resolution_type=ResolutionType.AUTO_API,
+        status=BetStatus.OPEN,
+        entry_amount=entry_amount,
+        max_participants=max_participants,
+        sports_match_id=str(fixture_id),
+        closes_at=closes_at,
+    )
+    db.add(bet)
+    await db.flush()
+
+    for label in unique_labels:
         option = BetOption(bet_id=bet.id, label=label)
         db.add(option)
 
@@ -168,6 +270,60 @@ async def join_bet(
     await db.flush()
 
     return participation
+
+
+async def delete_bet(db: AsyncSession, user_id: UUID, bet_id: UUID) -> None:
+    """
+    Delete a bet. Only allowed when:
+    - User is the creator
+    - Bet is still open
+    - At most 1 participant (i.e., only the creator joined, or nobody)
+
+    If the creator is a participant, their funds are unlocked before deletion.
+    """
+    bet = await get_bet(db, bet_id)
+
+    if bet.creator_id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Apenas o criador pode excluir o desafio",
+        )
+
+    if bet.status != BetStatus.OPEN:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Só é possível excluir desafios abertos",
+        )
+
+    # Count participations
+    part_result = await db.execute(
+        select(Participation).where(Participation.bet_id == bet_id)
+    )
+    participations = list(part_result.scalars().all())
+
+    if len(participations) > 1:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Não é possível excluir: outros participantes já entraram",
+        )
+
+    # Unlock funds for any participant (should only be the creator if any)
+    from app.services import wallet_service
+    for p in participations:
+        await wallet_service.unlock_funds(db, p.user_id, p.amount, bet_id)
+
+    # Delete participations then bet options then bet
+    for p in participations:
+        await db.delete(p)
+
+    opts_result = await db.execute(
+        select(BetOption).where(BetOption.bet_id == bet_id)
+    )
+    for opt in opts_result.scalars().all():
+        await db.delete(opt)
+
+    await db.delete(bet)
+    await db.flush()
 
 
 async def get_user_bets(

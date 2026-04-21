@@ -2977,3 +2977,285 @@ html[data-theme="dark"] .input-prefix {
 html[data-theme="dark"] .form-hint {
   color: var(--color-text-muted);
 }
+
+/* ===== Danger button ===== */
+.btn-danger {
+  background-color: transparent;
+  color: var(--color-error);
+  border-color: var(--color-error);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background-color: #fef2f2;
+}
+
+html[data-theme="dark"] .btn-danger {
+  color: #fca5a5;
+  border-color: #f87171;
+}
+
+html[data-theme="dark"] .btn-danger:hover:not(:disabled) {
+  background-color: rgba(239, 68, 68, 0.1);
+}
+
+.share-divider {
+  height: 1px;
+  background-color: var(--color-border);
+  margin: 16px 0;
+}
+
+/* ================================================
+   SPRINT 3 — Sport bet creation flow
+   ================================================ */
+
+/* Informational alert variant (neutral blue) */
+.alert-info {
+  background-color: var(--color-surface-alt);
+  color: var(--color-text);
+  border: 1px solid var(--color-border, var(--color-gray-200));
+}
+
+html[data-theme="dark"] .alert-info {
+  background-color: var(--color-surface-alt);
+  color: var(--color-text);
+}
+
+/* Read-only field display (used for fixture kickoff time) */
+.form-readonly {
+  padding: 10px 12px;
+  background-color: var(--color-gray-100);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+/* Bet type selector (Previsão Esportiva vs Desafio Personalizado) */
+.bet-type-selector {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+@media (min-width: 768px) {
+  .bet-type-selector {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.bet-type-card {
+  text-align: left;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.1s ease;
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 20px;
+  font-family: inherit;
+}
+
+.bet-type-card:hover {
+  border-color: var(--color-primary);
+  transform: translateY(-1px);
+}
+
+.bet-type-card:active {
+  transform: translateY(0);
+}
+
+.bet-type-card h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.bet-type-card p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  line-height: 1.4;
+}
+
+.bet-type-icon {
+  font-size: 1.75rem;
+  line-height: 1;
+}
+
+/* League picker */
+.sport-league-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+@media (min-width: 600px) {
+  .sport-league-list {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.sport-league-card {
+  padding: 12px 14px;
+  border: 2px solid var(--color-gray-200);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.sport-league-card:hover {
+  border-color: var(--color-primary);
+}
+
+.sport-league-card-active {
+  border-color: var(--color-primary);
+  background-color: rgba(255, 209, 13, 0.1);
+}
+
+.sport-league-name {
+  color: var(--color-text);
+}
+
+/* Fixture picker */
+.sport-fixture-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.sport-fixture-card {
+  padding: 12px 14px;
+  border: 2px solid var(--color-gray-200);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.sport-fixture-card:hover {
+  border-color: var(--color-primary);
+}
+
+.sport-fixture-card-active {
+  border-color: var(--color-primary);
+  background-color: rgba(255, 209, 13, 0.1);
+}
+
+.sport-fixture-teams {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.sport-fixture-team {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.sport-fixture-team:last-child {
+  justify-content: flex-end;
+  text-align: right;
+}
+
+.sport-fixture-team span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sport-fixture-logo {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.sport-fixture-vs {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sport-fixture-date {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+/* Template picker */
+.sport-template-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.sport-template-card {
+  padding: 12px 14px;
+  border: 2px solid var(--color-gray-200);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.sport-template-card:hover {
+  border-color: var(--color-primary);
+}
+
+.sport-template-card-active {
+  border-color: var(--color-primary);
+  background-color: rgba(255, 209, 13, 0.1);
+}
+
+.sport-template-card h4 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.sport-template-card p {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.sport-options-preview {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-gray-100);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
