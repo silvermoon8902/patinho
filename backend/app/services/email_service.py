@@ -77,6 +77,44 @@ def render_welcome(name: str, app_url: str) -> tuple[str, str]:
     return html, text
 
 
+def render_bet_invite(
+    inviter_name: str,
+    bet_title: str,
+    invite_url: str,
+    entry_amount: str,
+) -> tuple[str, str]:
+    """Returns (html, text) for a bet invite email."""
+    html = f"""<!DOCTYPE html>
+<html lang="pt-BR"><body style="font-family:Arial,sans-serif;background:#f5f5f5;padding:20px;">
+<div style="max-width:480px;margin:0 auto;background:white;padding:32px;border-radius:12px;">
+<h1 style="color:#001F3F;">Patinho</h1>
+<h2 style="color:#001F3F;">Você recebeu um convite!</h2>
+<p style="color:#333;"><strong>{inviter_name}</strong> te convidou para participar do desafio:</p>
+<h3 style="background:#001F3F;color:#FFD10D;padding:12px;border-radius:8px;margin:16px 0;">{bet_title}</h3>
+<p style="color:#333;">Valor de entrada: <strong style="color:#001F3F;">{entry_amount}</strong></p>
+<p style="text-align:center;margin:32px 0;">
+<a href="{invite_url}" style="background:#FFD10D;color:#001F3F;padding:14px 28px;text-decoration:none;border-radius:8px;font-weight:bold;display:inline-block;">Participar do Desafio</a>
+</p>
+<p style="color:#6b7280;font-size:14px;">Se o botão não funcionar, copie e cole este link no seu navegador:<br/>
+<a href="{invite_url}" style="color:#001F3F;word-break:break-all;">{invite_url}</a></p>
+<p style="color:#6b7280;font-size:12px;margin-top:24px;">Se você não conhece esta pessoa ou não quer participar, ignore este e-mail.</p>
+</div></body></html>"""
+    text = f"""Olá!
+
+{inviter_name} te convidou para participar do desafio "{bet_title}" no Patinho.
+
+Valor de entrada: {entry_amount}
+
+Acesse o link abaixo para ver as regras e participar:
+{invite_url}
+
+Se você não conhece esta pessoa ou não quer participar, ignore este e-mail.
+
+— Patinho
+"""
+    return html, text
+
+
 def render_prize_won(name: str, bet_title: str, amount: str, bet_url: str) -> tuple[str, str]:
     html = f"""<!DOCTYPE html>
 <html lang="pt-BR"><body style="font-family:Arial,sans-serif;background:#f5f5f5;padding:20px;">

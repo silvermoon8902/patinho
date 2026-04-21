@@ -76,6 +76,7 @@ async def create_sport_bet(
     fixture_data: dict | None = None,
     race_data: dict | None = None,
     driver_names: list[str] | None = None,
+    tennis_data: dict | None = None,
 ) -> Bet:
     """
     Create a sport bet wired to an external API event.
@@ -144,6 +145,30 @@ async def create_sport_bet(
         category = "football"
         if fixture_data.get("league_name"):
             description_parts.append(fixture_data["league_name"])
+
+    elif template == "tennis_winner":
+        if not tennis_data:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Dados da partida ausentes",
+            )
+        player1 = tennis_data.get("player1_name")
+        player2 = tennis_data.get("player2_name")
+        if not player1 or not player2:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Dados dos jogadores incompletos",
+            )
+        title = f"{player1} vs {player2}"
+        options = [player1, player2]
+        closes_at = tennis_data["date"]
+        sports_match_id = str(tennis_data["match_id"])
+        category = "tennis"
+        tour = tennis_data.get("tour") or ""
+        if tour:
+            description_parts.append(f"Tênis {tour}")
+        else:
+            description_parts.append("Tênis")
 
     elif template == "f1_winner":
         if not race_data:

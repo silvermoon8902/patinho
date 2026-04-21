@@ -2,11 +2,16 @@ from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.database import get_db
 from app.integrations.api_f1 import api_f1_client
 from app.integrations.api_football import api_football_client
+from app.integrations.api_tennis import api_tennis_client
+from app.models.bet import Bet
+from app.models.participation import Participation
 from app.models.user import User
 from app.schemas.bet import (
     BetCreate,
@@ -20,6 +25,8 @@ from app.schemas.bet import (
     DirectJoinRequest,
     DisputeEvidenceRequest,
     DisputeResolveRequest,
+    EmailInviteRequest,
+    EmailInviteResponse,
     ParticipationResponse,
     VoteCountResponse,
     VoteRequest,
@@ -31,6 +38,7 @@ from app.services import (
     declare_service,
     direct_join_service,
     dispute_service,
+    email_service,
     voting_service,
 )
 from app.services.auth_service import get_current_active_user
@@ -234,6 +242,64 @@ async def create_sport_bet(
         )
         return _build_bet_response(bet)
 
+    if sport == "tennis":
+        if not data.tennis_match_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="É necessário escolher uma partida de tênis",
+            )
+
+        match = await api_tennis_client.get_match(data.tennis_match_id)
+        if not match:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Partida não encontrada no API-Tennis",
+            )
+
+        # Extract player names and date using the client's helpers
+        p1, p2 = api_tennis_client._extract_player_names(match)
+        raw_date = api_tennis_client._extract_start_date(match)
+        tour = api_tennis_client._extract_tour(match)
+
+        if not p1 or not p2 or not raw_date:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Dados da partida de tênis incompletos",
+            )
+
+        try:
+            match_date = datetime.fromisoformat(raw_date.replace("Z", "+00:00"))
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Data da partida inválida",
+            )
+
+        if match_date.tzinfo is None:
+            match_date = match_date.replace(tzinfo=timezone.utc)
+
+        if match_date <= datetime.now(timezone.utc):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Esta partida já começou ou terminou",
+            )
+
+        bet = await bet_service.create_sport_bet(
+            db,
+            user.id,
+            template=data.template,
+            entry_amount=data.entry_amount,
+            max_participants=data.max_participants,
+            tennis_data={
+                "match_id": str(data.tennis_match_id),
+                "date": match_date,
+                "tour": tour,
+                "player1_name": p1,
+                "player2_name": p2,
+            },
+        )
+        return _build_bet_response(bet)
+
     raise HTTPException(
         status_code=status.HTTP_400_BAD_REQUEST,
         detail=f"Esporte não suportado: {sport}",
@@ -398,3 +464,94 @@ async def list_contestations(
 ):
     contestations = await declare_service.get_contestations(db, bet_id)
     return [ContestationResponse.model_validate(c) for c in contestations]
+
+
+def _format_brl(amount) -> str:
+    try:
+        return "R$ " + f"{float(amount):.2f}".replace(".", ",")
+    except (ValueError, TypeError):
+        return f"R$ {amount}"
+
+
+@router.post("/{bet_id}/email-invite", response_model=EmailInviteResponse)
+async def send_email_invites(
+    bet_id: UUID,
+    data: EmailInviteRequest,
+    user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Send bet invite emails to up to 10 addresses.
+
+    Caller must be the bet creator or an existing participant.
+    Returns a per-email status map; individual failures do not abort the
+    request.
+    """
+    bet = await bet_service.get_bet(db, bet_id)
+
+    # Authorization: creator or participant
+    is_creator = bet.creator_id == user.id
+    is_participant = any(
+        p.user_id == user.id for p in (bet.participations or [])
+    )
+    if not (is_creator or is_participant):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Apenas o criador ou um participante pode enviar convites",
+        )
+
+    invite_url = f"{settings.APP_URL.rstrip('/')}/invite/{bet.invite_token}"
+    entry_amount_str = _format_brl(bet.entry_amount)
+    inviter_name = user.username or "Um amigo"
+    subject = f"{inviter_name} te convidou para o desafio \"{bet.title}\" no Patinho"
+
+    # Build set of emails that already know about this bet
+    participant_user_ids = {p.user_id for p in (bet.participations or [])}
+    participant_user_ids.add(bet.creator_id)
+
+    known_emails_lower: set[str] = set()
+    if participant_user_ids:
+        existing_users = await db.execute(
+            select(User).where(User.id.in_(participant_user_ids))
+        )
+        for u in existing_users.scalars().all():
+            if u.email:
+                known_emails_lower.add(u.email.lower())
+
+    results: dict[str, str] = {}
+    # Normalize dedupe the requested emails while preserving order
+    seen_emails: set[str] = set()
+    unique_emails: list[str] = []
+    for raw_email in data.emails:
+        email_str = str(raw_email).strip()
+        if not email_str:
+            continue
+        key = email_str.lower()
+        if key in seen_emails:
+            continue
+        seen_emails.add(key)
+        unique_emails.append(email_str)
+
+    for email in unique_emails:
+        if email.lower() in known_emails_lower:
+            results[email] = "skipped"
+            continue
+
+        try:
+            html, text = email_service.render_bet_invite(
+                inviter_name=inviter_name,
+                bet_title=bet.title,
+                invite_url=invite_url,
+                entry_amount=entry_amount_str,
+            )
+            sent = await email_service.send_email(
+                to=email,
+                subject=subject,
+                html=html,
+                text=text,
+            )
+            results[email] = "sent" if sent else "failed"
+        except Exception:
+            results[email] = "failed"
+
+    return EmailInviteResponse(results=results)

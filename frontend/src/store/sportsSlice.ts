@@ -44,6 +44,14 @@ export interface SportDriver {
   team_name: string;
 }
 
+export interface TennisMatch {
+  match_id: string;
+  date: string;
+  tour: string;
+  player1_name: string;
+  player2_name: string;
+}
+
 interface SportsState {
   leagues: SportLeague[];
   leaguesLoading: boolean;
@@ -63,6 +71,11 @@ interface SportsState {
   driversLoading: boolean;
   driversError: string | null;
   driversRaceId: string | null;
+
+  tennisMatches: TennisMatch[];
+  tennisMatchesLoading: boolean;
+  tennisMatchesError: string | null;
+  tennisMatchesTour: string | null;
 
   createLoading: boolean;
   createError: string | null;
@@ -87,6 +100,11 @@ const initialState: SportsState = {
   driversLoading: false,
   driversError: null,
   driversRaceId: null,
+
+  tennisMatches: [],
+  tennisMatchesLoading: false,
+  tennisMatchesError: null,
+  tennisMatchesTour: null,
 
   createLoading: false,
   createError: null,
@@ -161,10 +179,40 @@ export const fetchRaceDrivers = createAsyncThunk(
   }
 );
 
+interface FetchTennisMatchesArgs {
+  tour?: string;
+  season?: number;
+}
+
+export const fetchTennisMatches = createAsyncThunk(
+  "sports/fetchTennisMatches",
+  async (
+    { tour = "", season = 2026 }: FetchTennisMatchesArgs,
+    { rejectWithValue }
+  ) => {
+    try {
+      const params = new URLSearchParams();
+      if (tour) params.set("tour", tour);
+      if (season) params.set("season", String(season));
+      const qs = params.toString() ? `?${params.toString()}` : "";
+      const response = await apiClient.get(`/sports/tennis/matches${qs}`);
+      return {
+        tour,
+        matches: response.data as TennisMatch[],
+      };
+    } catch (error: unknown) {
+      return rejectWithValue(
+        extractError(error, "Erro ao carregar partidas de tênis")
+      );
+    }
+  }
+);
+
 export interface CreateSportBetPayload {
   template: string;
   fixture_id?: string | null;
   race_id?: string | null;
+  tennis_match_id?: string | null;
   driver_names?: string[] | null;
   entry_amount: number;
   max_participants: number;
@@ -193,6 +241,7 @@ const sportsSlice = createSlice({
       state.fixturesError = null;
       state.racesError = null;
       state.driversError = null;
+      state.tennisMatchesError = null;
       state.createError = null;
     },
     clearFixtures(state) {
@@ -209,6 +258,11 @@ const sportsSlice = createSlice({
       state.drivers = [];
       state.driversRaceId = null;
       state.driversError = null;
+    },
+    clearTennisMatches(state) {
+      state.tennisMatches = [];
+      state.tennisMatchesTour = null;
+      state.tennisMatchesError = null;
     },
   },
   extraReducers: (builder) => {
@@ -274,6 +328,22 @@ const sportsSlice = createSlice({
       state.driversError = action.payload as string;
     });
 
+    // Tennis matches
+    builder.addCase(fetchTennisMatches.pending, (state, action) => {
+      state.tennisMatchesLoading = true;
+      state.tennisMatchesError = null;
+      state.tennisMatchesTour = action.meta.arg.tour || "";
+    });
+    builder.addCase(fetchTennisMatches.fulfilled, (state, action) => {
+      state.tennisMatchesLoading = false;
+      state.tennisMatches = action.payload.matches;
+      state.tennisMatchesTour = action.payload.tour;
+    });
+    builder.addCase(fetchTennisMatches.rejected, (state, action) => {
+      state.tennisMatchesLoading = false;
+      state.tennisMatchesError = action.payload as string;
+    });
+
     // Create sport bet
     builder.addCase(createSportBet.pending, (state) => {
       state.createLoading = true;
@@ -294,5 +364,6 @@ export const {
   clearFixtures,
   clearRaces,
   clearDrivers,
+  clearTennisMatches,
 } = sportsSlice.actions;
 export default sportsSlice.reducer;

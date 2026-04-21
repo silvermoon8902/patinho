@@ -8,12 +8,14 @@ from app.integrations.api_football import (
     SUPPORTED_LEAGUES,
     api_football_client,
 )
+from app.integrations.api_tennis import api_tennis_client
 from app.schemas.sports import (
     LEAGUE_LABELS,
     DriverOption,
     FixtureResponse,
     LeagueResponse,
     RaceResponse,
+    TennisMatchResponse,
 )
 
 logger = logging.getLogger(__name__)
@@ -168,3 +170,52 @@ async def list_f1_race_drivers(race_id: str) -> list[DriverOption]:
         )
 
     return drivers
+
+
+@router.get("/tennis/matches", response_model=list[TennisMatchResponse])
+async def list_tennis_matches(
+    tour: str = Query(default="", max_length=10),
+    season: int = Query(default=2026, ge=2020, le=2099),
+) -> list[TennisMatchResponse]:
+    """
+    List upcoming tennis matches for the next 14 days.
+
+    tour: "ATP", "WTA", or "" for both.
+    Returns [] when the upstream API fails, the Tennis subscription is
+    inactive, or no upcoming matches are found.
+    """
+    try:
+        raw_matches = await api_tennis_client.list_upcoming_matches(
+            tour=tour, season=season
+        )
+    except Exception:
+        logger.exception(
+            "Failed to list upcoming tennis matches for tour=%s season=%s",
+            tour,
+            season,
+        )
+        return []
+
+    matches: list[TennisMatchResponse] = []
+    for raw in raw_matches:
+        match_id = raw.get("match_id")
+        raw_date = raw.get("date")
+        player1 = raw.get("player1_name")
+        player2 = raw.get("player2_name")
+        if not match_id or not raw_date or not player1 or not player2:
+            continue
+        try:
+            date_val = datetime.fromisoformat(raw_date.replace("Z", "+00:00"))
+        except (ValueError, AttributeError, TypeError):
+            continue
+        matches.append(
+            TennisMatchResponse(
+                match_id=str(match_id),
+                date=date_val,
+                tour=str(raw.get("tour") or ""),
+                player1_name=str(player1),
+                player2_name=str(player2),
+            )
+        )
+
+    return matches

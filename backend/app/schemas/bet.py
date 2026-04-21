@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from decimal import Decimal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 
 class BetCreate(BaseModel):
@@ -116,3 +116,11 @@ class ContestationResponse(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class EmailInviteRequest(BaseModel):
+    emails: list[EmailStr] = Field(min_length=1, max_length=10)
+
+
+class EmailInviteResponse(BaseModel):
+    results: dict[str, str]

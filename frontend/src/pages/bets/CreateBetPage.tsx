@@ -7,11 +7,13 @@ import {
   clearDrivers,
   clearFixtures,
   clearRaces,
+  clearTennisMatches,
   createSportBet,
   fetchFixtures,
   fetchLeagues,
   fetchRaceDrivers,
   fetchRaces,
+  fetchTennisMatches,
 } from "@/store/sportsSlice";
 
 const CATEGORIES = [
@@ -24,7 +26,8 @@ const CATEGORIES = [
 ];
 
 type BetFlow = "none" | "sport" | "custom";
-type SportKind = "football" | "f1";
+type SportKind = "football" | "f1" | "tennis";
+type TennisTour = "ATP" | "WTA" | "";
 
 const CUSTOM_STEPS = ["Informações", "Opções", "Regras", "Revisão"];
 const SPORT_STEPS = ["Esporte", "Evento", "Aposta", "Regras", "Revisão"];
@@ -64,6 +67,12 @@ const SPORT_TEMPLATES: SportTemplate[] = [
     label: "Vencedor da corrida",
     description: "Escolha o piloto que vai vencer a corrida",
     sport: "f1",
+  },
+  {
+    id: "tennis_winner",
+    label: "Vencedor da partida",
+    description: "Escolha o vencedor da partida de tênis",
+    sport: "tennis",
   },
 ];
 
@@ -115,6 +124,10 @@ export default function CreateBetPage() {
     driversLoading,
     driversError,
     driversRaceId,
+    tennisMatches,
+    tennisMatchesLoading,
+    tennisMatchesError,
+    tennisMatchesTour,
     createLoading: sportCreateLoading,
     createError: sportCreateError,
   } = useSelector((state: RootState) => state.sports);
@@ -152,6 +165,13 @@ export default function CreateBetPage() {
   const [sportMaxParticipantsText, setSportMaxParticipantsText] =
     useState("100");
 
+  // Tennis-specific state
+  const [selectedTennisTour, setSelectedTennisTour] =
+    useState<TennisTour>("ATP");
+  const [selectedTennisMatchId, setSelectedTennisMatchId] = useState<
+    string | null
+  >(null);
+
   const entryAmount = parseFloat(entryAmountText) || 0;
   const maxParticipants = parseInt(maxParticipantsText) || 0;
   const sportEntryAmount = parseFloat(sportEntryAmountText) || 0;
@@ -162,6 +182,8 @@ export default function CreateBetPage() {
     fixtures.find((f) => f.fixture_id === selectedFixtureId) || null;
   const selectedRace =
     races.find((r) => r.race_id === selectedRaceId) || null;
+  const selectedTennisMatch =
+    tennisMatches.find((m) => m.match_id === selectedTennisMatchId) || null;
 
   const availableTemplates = SPORT_TEMPLATES.filter(
     (t) => t.sport === sportKind
@@ -236,6 +258,29 @@ export default function CreateBetPage() {
     selectedRaceId,
     driversLoading,
     driversRaceId,
+    dispatch,
+  ]);
+
+  // Fetch tennis matches when user reaches the Evento step for Tennis.
+  useEffect(() => {
+    if (
+      flow === "sport" &&
+      sportKind === "tennis" &&
+      step === 1 &&
+      !tennisMatchesLoading &&
+      tennisMatchesTour !== selectedTennisTour
+    ) {
+      dispatch(
+        fetchTennisMatches({ tour: selectedTennisTour, season: F1_SEASONS[0]! })
+      );
+    }
+  }, [
+    flow,
+    sportKind,
+    step,
+    selectedTennisTour,
+    tennisMatchesLoading,
+    tennisMatchesTour,
     dispatch,
   ]);
 
@@ -379,9 +424,12 @@ export default function CreateBetPage() {
     setSelectedDriverIds([]);
     setDriversInitialized(false);
     setSelectedTemplate("match_winner");
+    setSelectedTennisMatchId(null);
+    setSelectedTennisTour("ATP");
     dispatch(clearFixtures());
     dispatch(clearRaces());
     dispatch(clearDrivers());
+    dispatch(clearTennisMatches());
   };
 
   const pickLeague = (leagueId: string) => {
@@ -407,17 +455,28 @@ export default function CreateBetPage() {
     // Reset template + downstream picks so the new kind starts clean
     if (kind === "football") {
       setSelectedTemplate("match_winner");
-    } else {
+    } else if (kind === "f1") {
       setSelectedTemplate("f1_winner");
+    } else {
+      setSelectedTemplate("tennis_winner");
     }
     setSelectedLeagueId(null);
     setSelectedFixtureId(null);
     setSelectedRaceId(null);
     setSelectedDriverIds([]);
     setDriversInitialized(false);
+    setSelectedTennisMatchId(null);
     dispatch(clearFixtures());
     dispatch(clearRaces());
     dispatch(clearDrivers());
+    dispatch(clearTennisMatches());
+  };
+
+  const pickTennisTour = (tour: TennisTour) => {
+    if (selectedTennisTour === tour) return;
+    setSelectedTennisTour(tour);
+    setSelectedTennisMatchId(null);
+    dispatch(clearTennisMatches());
   };
 
   const toggleDriver = (driverId: string) => {

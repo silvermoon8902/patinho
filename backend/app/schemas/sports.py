@@ -34,6 +34,14 @@ class DriverOption(BaseModel):
     team_name: str
 
 
+class TennisMatchResponse(BaseModel):
+    match_id: str
+    date: datetime
+    tour: str
+    player1_name: str
+    player2_name: str
+
+
 # League metadata used for display labels. Keys must match the keys of
 # SUPPORTED_LEAGUES in app.integrations.api_football.
 LEAGUE_LABELS: dict[str, str] = {
@@ -65,6 +73,11 @@ BET_TEMPLATES: dict[str, dict[str, str]] = {
         "label": "Vencedor da corrida",
         "description": "Escolha o piloto que vai vencer a corrida",
     },
+    "tennis_winner": {
+        "sport": "tennis",
+        "label": "Vencedor da partida",
+        "description": "Escolha o vencedor da partida de tênis",
+    },
 }
 
 
@@ -72,6 +85,7 @@ class SportBetCreate(BaseModel):
     template: str = Field(default="match_winner")
     fixture_id: str | None = Field(default=None, max_length=50)
     race_id: str | None = Field(default=None, max_length=50)
+    tennis_match_id: str | None = Field(default=None, max_length=50)
     entry_amount: Decimal = Field(default=Decimal("5"), ge=5, le=1000)
     max_participants: int = Field(default=100, ge=2, le=100)
     # For f1_winner: optional subset of driver names to use as bet options

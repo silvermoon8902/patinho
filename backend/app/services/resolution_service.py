@@ -23,6 +23,7 @@ async def resolve_sports_bet(db: AsyncSession, bet_id: UUID) -> bool:
     """
     from app.integrations.api_f1 import api_f1_client
     from app.integrations.api_football import api_football_client
+    from app.integrations.api_tennis import api_tennis_client
 
     bet = await db.get(Bet, bet_id)
     if not bet:
@@ -153,6 +154,49 @@ async def resolve_sports_bet(db: AsyncSession, bet_id: UUID) -> bool:
         await distribute_prizes(db, bet_id, winning_option.id)
         logger.info(
             "Resolved f1_winner bet %s with option %s (winner=%s)",
+            bet_id,
+            winning_option.id,
+            winner_name,
+        )
+        return True
+
+    if template == "tennis_winner":
+        winner_name = await api_tennis_client.get_match_winner(bet.sports_match_id)
+        if not winner_name:
+            return False
+
+        winning_option = next(
+            (o for o in options if o.label.lower() == winner_name.lower()),
+            None,
+        )
+        if not winning_option:
+            # Try matching on last-name (tennis players are often rendered as
+            # "N. Djokovic" or "Djokovic N." etc.)
+            parts = winner_name.split()
+            last = parts[-1].lower() if parts else ""
+            if last:
+                winning_option = next(
+                    (o for o in options if last in o.label.lower()), None
+                )
+            # Try first part as well (e.g. surname-first renderings)
+            if not winning_option and parts:
+                first = parts[0].lower()
+                winning_option = next(
+                    (o for o in options if first in o.label.lower()), None
+                )
+
+        if not winning_option:
+            logger.error(
+                "Could not map tennis winner '%s' to any option for bet %s. Options: %s",
+                winner_name,
+                bet_id,
+                [o.label for o in options],
+            )
+            return False
+
+        await distribute_prizes(db, bet_id, winning_option.id)
+        logger.info(
+            "Resolved tennis_winner bet %s with option %s (winner=%s)",
             bet_id,
             winning_option.id,
             winner_name,
