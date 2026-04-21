@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
+from app.integrations.api_f1 import api_f1_client
 from app.integrations.api_football import api_football_client
 from app.models.user import User
 from app.schemas.bet import (
@@ -97,70 +98,146 @@ async def create_sport_bet(
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Create a sport bet from an API-Football fixture.
+    Create a sport bet wired to an external event.
 
-    The caller picks a fixture_id plus a template; we pull fixture
-    details from API-Football, validate kickoff is in the future, then
-    create a bet with pre-defined options and closes_at == kickoff.
+    Dispatches by template:
+      - match_winner / exact_score (football): requires fixture_id,
+        we fetch kickoff + team names from API-Football.
+      - f1_winner: requires race_id + driver_names, we fetch race
+        metadata (date/circuit/competition) from API-Formula-1.
     """
-    if data.template not in BET_TEMPLATES:
+    template_meta = BET_TEMPLATES.get(data.template)
+    if not template_meta:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Template de aposta não suportado: {data.template}",
         )
 
-    fixtures = await api_football_client.get_fixtures([data.fixture_id])
-    if not fixtures:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Partida não encontrada no API-Football",
+    sport = template_meta.get("sport")
+
+    if sport == "football":
+        if not data.fixture_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="É necessário escolher uma partida",
+            )
+
+        fixtures = await api_football_client.get_fixtures([data.fixture_id])
+        if not fixtures:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Partida não encontrada no API-Football",
+            )
+
+        raw = fixtures[0]
+        fixture = raw.get("fixture", {}) or {}
+        teams = raw.get("teams", {}) or {}
+        league = raw.get("league", {}) or {}
+
+        home_name = (teams.get("home") or {}).get("name")
+        away_name = (teams.get("away") or {}).get("name")
+        raw_date = fixture.get("date")
+
+        if not home_name or not away_name or not raw_date:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Dados da partida incompletos",
+            )
+
+        try:
+            kickoff_at = datetime.fromisoformat(raw_date.replace("Z", "+00:00"))
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Data da partida inválida",
+            )
+
+        if kickoff_at.tzinfo is None:
+            kickoff_at = kickoff_at.replace(tzinfo=timezone.utc)
+
+        if kickoff_at <= datetime.now(timezone.utc):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Esta partida já começou ou terminou",
+            )
+
+        bet = await bet_service.create_sport_bet(
+            db,
+            user.id,
+            template=data.template,
+            entry_amount=data.entry_amount,
+            max_participants=data.max_participants,
+            fixture_data={
+                "fixture_id": str(data.fixture_id),
+                "home_team": home_name,
+                "away_team": away_name,
+                "kickoff_at": kickoff_at,
+                "league_name": league.get("name"),
+            },
         )
+        return _build_bet_response(bet)
 
-    raw = fixtures[0]
-    fixture = raw.get("fixture", {}) or {}
-    teams = raw.get("teams", {}) or {}
-    league = raw.get("league", {}) or {}
+    if sport == "f1":
+        if not data.race_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="É necessário escolher uma corrida",
+            )
 
-    home_name = (teams.get("home") or {}).get("name")
-    away_name = (teams.get("away") or {}).get("name")
-    raw_date = fixture.get("date")
+        race = await api_f1_client.get_race(data.race_id)
+        if not race:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Corrida não encontrada no API-Formula-1",
+            )
 
-    if not home_name or not away_name or not raw_date:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Dados da partida incompletos",
+        raw_date = race.get("date")
+        if not raw_date:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Data da corrida indisponível",
+            )
+
+        try:
+            race_date = datetime.fromisoformat(raw_date.replace("Z", "+00:00"))
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Data da corrida inválida",
+            )
+
+        if race_date.tzinfo is None:
+            race_date = race_date.replace(tzinfo=timezone.utc)
+
+        if race_date <= datetime.now(timezone.utc):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Esta corrida já começou ou terminou",
+            )
+
+        circuit = race.get("circuit") or {}
+        competition = race.get("competition") or {}
+
+        bet = await bet_service.create_sport_bet(
+            db,
+            user.id,
+            template=data.template,
+            entry_amount=data.entry_amount,
+            max_participants=data.max_participants,
+            race_data={
+                "race_id": str(data.race_id),
+                "date": race_date,
+                "circuit_name": circuit.get("name") or "",
+                "competition_name": competition.get("name") or "",
+            },
+            driver_names=data.driver_names,
         )
+        return _build_bet_response(bet)
 
-    try:
-        kickoff_at = datetime.fromisoformat(raw_date.replace("Z", "+00:00"))
-    except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Data da partida inválida",
-        )
-
-    if kickoff_at.tzinfo is None:
-        kickoff_at = kickoff_at.replace(tzinfo=timezone.utc)
-
-    if kickoff_at <= datetime.now(timezone.utc):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Esta partida já começou ou terminou",
-        )
-
-    bet = await bet_service.create_sport_bet(
-        db,
-        user.id,
-        fixture_id=str(data.fixture_id),
-        home_team=home_name,
-        away_team=away_name,
-        kickoff_at=kickoff_at,
-        league_name=league.get("name"),
-        template=data.template,
-        entry_amount=data.entry_amount,
-        max_participants=data.max_participants,
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail=f"Esporte não suportado: {sport}",
     )
-    return _build_bet_response(bet)
 
 
 @router.get("", response_model=list[BetResponse])

@@ -30,7 +30,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 const CATEGORY_LABELS: Record<string, string> = {
   football: "Futebol",
-  f1: "F1",
+  f1: "Fórmula 1",
   tennis: "Tenis",
   bbb: "BBB",
   politics: "Politica",

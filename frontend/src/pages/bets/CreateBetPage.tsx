@@ -4,15 +4,19 @@ import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch, RootState } from "@/store";
 import { createBet } from "@/store/betSlice";
 import {
+  clearDrivers,
   clearFixtures,
+  clearRaces,
   createSportBet,
   fetchFixtures,
   fetchLeagues,
+  fetchRaceDrivers,
+  fetchRaces,
 } from "@/store/sportsSlice";
 
 const CATEGORIES = [
   { value: "football", label: "Futebol" },
-  { value: "f1", label: "F1" },
+  { value: "f1", label: "Fórmula 1" },
   { value: "tennis", label: "Tênis" },
   { value: "bbb", label: "BBB" },
   { value: "politics", label: "Política" },
@@ -20,21 +24,59 @@ const CATEGORIES = [
 ];
 
 type BetFlow = "none" | "sport" | "custom";
+type SportKind = "football" | "f1";
 
 const CUSTOM_STEPS = ["Informações", "Opções", "Regras", "Revisão"];
-const SPORT_STEPS = ["Liga", "Partida", "Aposta", "Regras", "Revisão"];
+const SPORT_STEPS = ["Esporte", "Evento", "Aposta", "Regras", "Revisão"];
 
 const MIN_ENTRY = 5;
 const MAX_ENTRY = 1000;
 const MIN_PARTICIPANTS = 2;
 const MAX_PARTICIPANTS = 100;
 
-const SPORT_TEMPLATES = [
+const MIN_DRIVERS = 2;
+const MAX_DRIVERS = 10;
+
+const F1_SEASONS = [2026, 2025];
+
+interface SportTemplate {
+  id: string;
+  label: string;
+  description: string;
+  sport: SportKind;
+}
+
+const SPORT_TEMPLATES: SportTemplate[] = [
   {
     id: "match_winner",
     label: "Quem vence?",
     description: "Escolha o vencedor da partida (ou empate)",
+    sport: "football",
   },
+  {
+    id: "exact_score",
+    label: "Acertar o placar",
+    description: "Escolha o placar exato da partida",
+    sport: "football",
+  },
+  {
+    id: "f1_winner",
+    label: "Vencedor da corrida",
+    description: "Escolha o piloto que vai vencer a corrida",
+    sport: "f1",
+  },
+];
+
+const EXACT_SCORE_OPTIONS = [
+  "0x0",
+  "1x0",
+  "0x1",
+  "1x1",
+  "2x0",
+  "0x2",
+  "2x1",
+  "1x2",
+  "Outro",
 ];
 
 function formatFixtureDate(iso: string): string {
@@ -65,6 +107,14 @@ export default function CreateBetPage() {
     fixturesLoading,
     fixturesError,
     fixturesLeagueId,
+    races,
+    racesLoading,
+    racesError,
+    racesSeason,
+    drivers,
+    driversLoading,
+    driversError,
+    driversRaceId,
     createLoading: sportCreateLoading,
     createError: sportCreateError,
   } = useSelector((state: RootState) => state.sports);
@@ -85,13 +135,17 @@ export default function CreateBetPage() {
   const [closesAt, setClosesAt] = useState("");
 
   // Sport flow state
+  const [sportKind, setSportKind] = useState<SportKind>("football");
   const [selectedLeagueId, setSelectedLeagueId] = useState<string | null>(null);
   const [selectedFixtureId, setSelectedFixtureId] = useState<string | null>(
     null
   );
-  const [selectedTemplate, setSelectedTemplate] = useState<string>(
-    SPORT_TEMPLATES[0]!.id
-  );
+  const [selectedSeason, setSelectedSeason] = useState<number>(F1_SEASONS[0]!);
+  const [selectedRaceId, setSelectedRaceId] = useState<string | null>(null);
+  const [selectedTemplate, setSelectedTemplate] =
+    useState<string>("match_winner");
+  const [selectedDriverIds, setSelectedDriverIds] = useState<string[]>([]);
+  const [driversInitialized, setDriversInitialized] = useState(false);
   const [sportEntryAmountText, setSportEntryAmountText] = useState(
     String(MIN_ENTRY)
   );
@@ -106,19 +160,32 @@ export default function CreateBetPage() {
   const selectedLeague = leagues.find((l) => l.id === selectedLeagueId) || null;
   const selectedFixture =
     fixtures.find((f) => f.fixture_id === selectedFixtureId) || null;
+  const selectedRace =
+    races.find((r) => r.race_id === selectedRaceId) || null;
 
-  // Fetch leagues when user enters the sport flow (step 0 of sport).
-  useEffect(() => {
-    if (flow === "sport" && leagues.length === 0 && !leaguesLoading) {
-      dispatch(fetchLeagues());
-    }
-  }, [flow, leagues.length, leaguesLoading, dispatch]);
+  const availableTemplates = SPORT_TEMPLATES.filter(
+    (t) => t.sport === sportKind
+  );
+  const selectedTemplateData =
+    availableTemplates.find((t) => t.id === selectedTemplate) || null;
 
-  // Fetch fixtures when user lands on step 1 (Partida) with a league picked
-  // and the cached fixtures don't match the currently selected league.
+  // Fetch leagues when user enters the sport flow with football.
   useEffect(() => {
     if (
       flow === "sport" &&
+      sportKind === "football" &&
+      leagues.length === 0 &&
+      !leaguesLoading
+    ) {
+      dispatch(fetchLeagues());
+    }
+  }, [flow, sportKind, leagues.length, leaguesLoading, dispatch]);
+
+  // Fetch fixtures when a league is selected on the Evento step.
+  useEffect(() => {
+    if (
+      flow === "sport" &&
+      sportKind === "football" &&
       step === 1 &&
       selectedLeagueId &&
       !fixturesLoading &&
@@ -126,7 +193,74 @@ export default function CreateBetPage() {
     ) {
       dispatch(fetchFixtures({ leagueId: selectedLeagueId }));
     }
-  }, [flow, step, selectedLeagueId, fixturesLoading, fixturesLeagueId, dispatch]);
+  }, [
+    flow,
+    sportKind,
+    step,
+    selectedLeagueId,
+    fixturesLoading,
+    fixturesLeagueId,
+    dispatch,
+  ]);
+
+  // Fetch F1 races when user reaches the Evento step for F1.
+  useEffect(() => {
+    if (
+      flow === "sport" &&
+      sportKind === "f1" &&
+      step === 1 &&
+      !racesLoading &&
+      racesSeason !== selectedSeason
+    ) {
+      dispatch(fetchRaces(selectedSeason));
+    }
+  }, [flow, sportKind, step, selectedSeason, racesLoading, racesSeason, dispatch]);
+
+  // Fetch drivers when user reaches the Aposta step for F1 with a race picked.
+  useEffect(() => {
+    if (
+      flow === "sport" &&
+      sportKind === "f1" &&
+      step === 2 &&
+      selectedRaceId &&
+      !driversLoading &&
+      driversRaceId !== selectedRaceId
+    ) {
+      setDriversInitialized(false);
+      dispatch(fetchRaceDrivers(selectedRaceId));
+    }
+  }, [
+    flow,
+    sportKind,
+    step,
+    selectedRaceId,
+    driversLoading,
+    driversRaceId,
+    dispatch,
+  ]);
+
+  // Once drivers arrive, default-select up to the first 10 by driver_id
+  useEffect(() => {
+    if (
+      flow === "sport" &&
+      sportKind === "f1" &&
+      !driversLoading &&
+      drivers.length > 0 &&
+      !driversInitialized &&
+      driversRaceId === selectedRaceId
+    ) {
+      setSelectedDriverIds(drivers.slice(0, MAX_DRIVERS).map((d) => d.driver_id));
+      setDriversInitialized(true);
+    }
+  }, [
+    flow,
+    sportKind,
+    drivers,
+    driversLoading,
+    driversInitialized,
+    driversRaceId,
+    selectedRaceId,
+  ]);
 
   const addOption = () => {
     setOptions([...options, ""]);
@@ -197,11 +331,21 @@ export default function CreateBetPage() {
   const canAdvanceSport = (): boolean => {
     switch (step) {
       case 0:
-        return !!selectedLeagueId;
+        return sportKind === "football" || sportKind === "f1";
       case 1:
-        return !!selectedFixtureId;
+        if (sportKind === "football") {
+          return !!selectedLeagueId && !!selectedFixtureId;
+        }
+        return !!selectedRaceId;
       case 2:
-        return !!selectedTemplate;
+        if (sportKind === "football") {
+          return !!selectedTemplate;
+        }
+        return (
+          selectedTemplate === "f1_winner" &&
+          selectedDriverIds.length >= MIN_DRIVERS &&
+          selectedDriverIds.length <= MAX_DRIVERS
+        );
       case 3:
         return sportRulesError === null;
       default:
@@ -222,7 +366,6 @@ export default function CreateBetPage() {
     if (step > 0) {
       setStep(step - 1);
     } else {
-      // Back from first step returns to type selector
       resetFlow();
     }
   };
@@ -232,7 +375,13 @@ export default function CreateBetPage() {
     setStep(0);
     setSelectedLeagueId(null);
     setSelectedFixtureId(null);
+    setSelectedRaceId(null);
+    setSelectedDriverIds([]);
+    setDriversInitialized(false);
+    setSelectedTemplate("match_winner");
     dispatch(clearFixtures());
+    dispatch(clearRaces());
+    dispatch(clearDrivers());
   };
 
   const pickLeague = (leagueId: string) => {
@@ -241,6 +390,46 @@ export default function CreateBetPage() {
       setSelectedFixtureId(null);
       dispatch(clearFixtures());
     }
+  };
+
+  const pickRace = (raceId: string) => {
+    if (selectedRaceId !== raceId) {
+      setSelectedRaceId(raceId);
+      setSelectedDriverIds([]);
+      setDriversInitialized(false);
+      dispatch(clearDrivers());
+    }
+  };
+
+  const pickSportKind = (kind: SportKind) => {
+    if (sportKind === kind) return;
+    setSportKind(kind);
+    // Reset template + downstream picks so the new kind starts clean
+    if (kind === "football") {
+      setSelectedTemplate("match_winner");
+    } else {
+      setSelectedTemplate("f1_winner");
+    }
+    setSelectedLeagueId(null);
+    setSelectedFixtureId(null);
+    setSelectedRaceId(null);
+    setSelectedDriverIds([]);
+    setDriversInitialized(false);
+    dispatch(clearFixtures());
+    dispatch(clearRaces());
+    dispatch(clearDrivers());
+  };
+
+  const toggleDriver = (driverId: string) => {
+    setSelectedDriverIds((prev) => {
+      if (prev.includes(driverId)) {
+        return prev.filter((id) => id !== driverId);
+      }
+      if (prev.length >= MAX_DRIVERS) {
+        return prev;
+      }
+      return [...prev, driverId];
+    });
   };
 
   const handleSubmitCustom = async () => {
@@ -267,18 +456,40 @@ export default function CreateBetPage() {
   };
 
   const handleSubmitSport = async () => {
-    if (!selectedFixtureId) return;
-    const result = await dispatch(
-      createSportBet({
-        fixture_id: selectedFixtureId,
-        template: selectedTemplate,
-        entry_amount: sportEntryAmount,
-        max_participants: sportMaxParticipants,
-      })
-    );
+    if (sportKind === "football") {
+      if (!selectedFixtureId) return;
+      const result = await dispatch(
+        createSportBet({
+          template: selectedTemplate,
+          fixture_id: selectedFixtureId,
+          entry_amount: sportEntryAmount,
+          max_participants: sportMaxParticipants,
+        })
+      );
 
-    if (createSportBet.fulfilled.match(result)) {
-      navigate(`/bets/${result.payload.id}`);
+      if (createSportBet.fulfilled.match(result)) {
+        navigate(`/bets/${result.payload.id}`);
+      }
+      return;
+    }
+
+    if (sportKind === "f1") {
+      if (!selectedRaceId) return;
+      const driverNames = selectedDriverIds
+        .map((id) => drivers.find((d) => d.driver_id === id)?.name)
+        .filter((n): n is string => !!n);
+      const result = await dispatch(
+        createSportBet({
+          template: "f1_winner",
+          race_id: selectedRaceId,
+          driver_names: driverNames,
+          entry_amount: sportEntryAmount,
+          max_participants: sportMaxParticipants,
+        })
+      );
+      if (createSportBet.fulfilled.match(result)) {
+        navigate(`/bets/${result.payload.id}`);
+      }
     }
   };
 
@@ -290,6 +501,45 @@ export default function CreateBetPage() {
 
   const formatCurrency = (val: number) =>
     `R$ ${val.toFixed(2).replace(".", ",")}`;
+
+  // Options preview for the current sport template (used in steps 2 and 4)
+  const sportOptionPreview: string[] = (() => {
+    if (sportKind === "football" && selectedFixture) {
+      if (selectedTemplate === "match_winner") {
+        return [selectedFixture.home_team, "Empate", selectedFixture.away_team];
+      }
+      if (selectedTemplate === "exact_score") {
+        return EXACT_SCORE_OPTIONS;
+      }
+      return [];
+    }
+    if (sportKind === "f1" && selectedTemplate === "f1_winner") {
+      return selectedDriverIds
+        .map((id) => drivers.find((d) => d.driver_id === id)?.name)
+        .filter((n): n is string => !!n);
+    }
+    return [];
+  })();
+
+  const sportEventDate: string | null = (() => {
+    if (sportKind === "football" && selectedFixture) return selectedFixture.date;
+    if (sportKind === "f1" && selectedRace) return selectedRace.date;
+    return null;
+  })();
+
+  const sportEventTitle: string = (() => {
+    if (sportKind === "football" && selectedFixture) {
+      return `${selectedFixture.home_team} vs ${selectedFixture.away_team}`;
+    }
+    if (sportKind === "f1" && selectedRace) {
+      const parts = [
+        selectedRace.competition_name,
+        selectedRace.circuit_name,
+      ].filter(Boolean);
+      return parts.join(" - ") || "Corrida";
+    }
+    return "-";
+  })();
 
   // =================================================================
   // Render: type selector (shown when flow === "none")
@@ -309,11 +559,10 @@ export default function CreateBetPage() {
               setStep(0);
             }}
           >
-            <div className="bet-type-icon">⚽</div>
             <h3>Previsão Esportiva</h3>
             <p>
-              Escolha uma partida real e aposte no vencedor. Resolução
-              automática quando o jogo terminar.
+              Escolha uma partida ou corrida real e aposte no resultado.
+              Resolução automática quando o evento terminar.
             </p>
           </button>
 
@@ -325,7 +574,6 @@ export default function CreateBetPage() {
               setStep(0);
             }}
           >
-            <div className="bet-type-icon">🎯</div>
             <h3>Desafio Personalizado</h3>
             <p>
               Crie um desafio com suas próprias opções. Resolução por votação
@@ -355,7 +603,7 @@ export default function CreateBetPage() {
               i < step ? "step-done" : ""
             }`}
           >
-            <div className="step-circle">{i < step ? "✓" : i + 1}</div>
+            <div className="step-circle">{i < step ? "OK" : i + 1}</div>
             <span className="step-label">{label}</span>
           </div>
         ))}
@@ -366,7 +614,44 @@ export default function CreateBetPage() {
       {/* ============================================================
           SPORT FLOW
          ============================================================ */}
+
+      {/* Step 0: sport kind */}
       {flow === "sport" && step === 0 && (
+        <div className="create-bet-form card">
+          <p className="form-hint">Escolha o esporte:</p>
+          <div className="sport-template-list">
+            <button
+              type="button"
+              className={`sport-template-card ${
+                sportKind === "football" ? "sport-template-card-active" : ""
+              }`}
+              onClick={() => pickSportKind("football")}
+            >
+              <h4>Futebol</h4>
+              <p>
+                Aposte no vencedor ou no placar exato de partidas das
+                principais ligas.
+              </p>
+            </button>
+            <button
+              type="button"
+              className={`sport-template-card ${
+                sportKind === "f1" ? "sport-template-card-active" : ""
+              }`}
+              onClick={() => pickSportKind("f1")}
+            >
+              <h4>Fórmula 1</h4>
+              <p>
+                Aposte no piloto que vai vencer a próxima corrida do
+                campeonato.
+              </p>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Step 1: evento (football = league + fixture; f1 = season + race) */}
+      {flow === "sport" && step === 1 && sportKind === "football" && (
         <div className="create-bet-form card">
           <p className="form-hint">Escolha a liga ou competição:</p>
           {leaguesLoading && (
@@ -389,64 +674,131 @@ export default function CreateBetPage() {
               </button>
             ))}
           </div>
+
+          {selectedLeagueId && (
+            <>
+              <p className="form-hint" style={{ marginTop: "16px" }}>
+                {selectedLeague
+                  ? `Próximas partidas — ${selectedLeague.name}`
+                  : "Escolha uma partida"}
+              </p>
+              {fixturesLoading && (
+                <p className="form-hint">Carregando partidas...</p>
+              )}
+              {fixturesError && (
+                <div className="alert alert-error">{fixturesError}</div>
+              )}
+              {!fixturesLoading &&
+                !fixturesError &&
+                fixtures.length === 0 && (
+                  <div className="alert alert-info">
+                    Nenhuma partida futura encontrada para esta liga.
+                  </div>
+                )}
+              <div className="sport-fixture-list">
+                {fixtures.map((f) => (
+                  <button
+                    key={f.fixture_id}
+                    type="button"
+                    className={`sport-fixture-card ${
+                      selectedFixtureId === f.fixture_id
+                        ? "sport-fixture-card-active"
+                        : ""
+                    }`}
+                    onClick={() => setSelectedFixtureId(f.fixture_id)}
+                  >
+                    <div className="sport-fixture-teams">
+                      <div className="sport-fixture-team">
+                        {f.home_logo && (
+                          <img
+                            src={f.home_logo}
+                            alt={f.home_team}
+                            className="sport-fixture-logo"
+                          />
+                        )}
+                        <span>{f.home_team}</span>
+                      </div>
+                      <span className="sport-fixture-vs">vs</span>
+                      <div className="sport-fixture-team">
+                        {f.away_logo && (
+                          <img
+                            src={f.away_logo}
+                            alt={f.away_team}
+                            className="sport-fixture-logo"
+                          />
+                        )}
+                        <span>{f.away_team}</span>
+                      </div>
+                    </div>
+                    <div className="sport-fixture-date">
+                      {formatFixtureDate(f.date)}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       )}
 
-      {flow === "sport" && step === 1 && (
+      {flow === "sport" && step === 1 && sportKind === "f1" && (
         <div className="create-bet-form card">
-          <p className="form-hint">
-            {selectedLeague
-              ? `Próximas partidas — ${selectedLeague.name}`
-              : "Escolha uma partida"}
-          </p>
-          {fixturesLoading && (
-            <p className="form-hint">Carregando partidas...</p>
-          )}
-          {fixturesError && (
-            <div className="alert alert-error">{fixturesError}</div>
-          )}
-          {!fixturesLoading && !fixturesError && fixtures.length === 0 && (
+          <div className="form-group">
+            <label>Temporada</label>
+            <select
+              className="form-select"
+              value={selectedSeason}
+              onChange={(e) => {
+                const val = parseInt(e.target.value, 10);
+                if (val !== selectedSeason) {
+                  setSelectedSeason(val);
+                  setSelectedRaceId(null);
+                  setSelectedDriverIds([]);
+                  setDriversInitialized(false);
+                  dispatch(clearRaces());
+                  dispatch(clearDrivers());
+                }
+              }}
+            >
+              {F1_SEASONS.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <p className="form-hint">Próximas corridas:</p>
+          {racesLoading && <p className="form-hint">Carregando corridas...</p>}
+          {racesError && <div className="alert alert-error">{racesError}</div>}
+          {!racesLoading && !racesError && races.length === 0 && (
             <div className="alert alert-info">
-              Nenhuma partida futura encontrada para esta liga.
+              Nenhuma corrida futura encontrada nesta temporada.
             </div>
           )}
           <div className="sport-fixture-list">
-            {fixtures.map((f) => (
+            {races.map((r) => (
               <button
-                key={f.fixture_id}
+                key={r.race_id}
                 type="button"
                 className={`sport-fixture-card ${
-                  selectedFixtureId === f.fixture_id
+                  selectedRaceId === r.race_id
                     ? "sport-fixture-card-active"
                     : ""
                 }`}
-                onClick={() => setSelectedFixtureId(f.fixture_id)}
+                onClick={() => pickRace(r.race_id)}
               >
                 <div className="sport-fixture-teams">
                   <div className="sport-fixture-team">
-                    {f.home_logo && (
-                      <img
-                        src={f.home_logo}
-                        alt={f.home_team}
-                        className="sport-fixture-logo"
-                      />
-                    )}
-                    <span>{f.home_team}</span>
-                  </div>
-                  <span className="sport-fixture-vs">vs</span>
-                  <div className="sport-fixture-team">
-                    {f.away_logo && (
-                      <img
-                        src={f.away_logo}
-                        alt={f.away_team}
-                        className="sport-fixture-logo"
-                      />
-                    )}
-                    <span>{f.away_team}</span>
+                    <span>{r.competition_name || "Corrida"}</span>
                   </div>
                 </div>
                 <div className="sport-fixture-date">
-                  {formatFixtureDate(f.date)}
+                  {r.circuit_name}
+                  {r.circuit_location ? ` — ${r.circuit_location}` : ""}
+                </div>
+                <div className="sport-fixture-date">
+                  {formatFixtureDate(r.date)}
                 </div>
               </button>
             ))}
@@ -454,11 +806,12 @@ export default function CreateBetPage() {
         </div>
       )}
 
+      {/* Step 2: aposta (template + F1 driver multi-select) */}
       {flow === "sport" && step === 2 && (
         <div className="create-bet-form card">
           <p className="form-hint">Escolha o tipo de aposta:</p>
           <div className="sport-template-list">
-            {SPORT_TEMPLATES.map((t) => (
+            {availableTemplates.map((t) => (
               <button
                 key={t.id}
                 type="button"
@@ -472,23 +825,74 @@ export default function CreateBetPage() {
               </button>
             ))}
           </div>
-          {selectedFixture && (
+
+          {sportKind === "football" && selectedFixture && (
             <div className="sport-options-preview">
               <span className="review-label">Opções geradas</span>
               <div className="review-options">
-                <span className="review-option-tag">
-                  {selectedFixture.home_team}
-                </span>
-                <span className="review-option-tag">Empate</span>
-                <span className="review-option-tag">
-                  {selectedFixture.away_team}
-                </span>
+                {(selectedTemplate === "exact_score"
+                  ? EXACT_SCORE_OPTIONS
+                  : [
+                      selectedFixture.home_team,
+                      "Empate",
+                      selectedFixture.away_team,
+                    ]
+                ).map((label) => (
+                  <span key={label} className="review-option-tag">
+                    {label}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {sportKind === "f1" && (
+            <div className="sport-options-preview">
+              <span className="review-label">
+                Pilotos ({selectedDriverIds.length}/{MAX_DRIVERS} — mín {MIN_DRIVERS})
+              </span>
+              {driversLoading && (
+                <p className="form-hint">Carregando pilotos...</p>
+              )}
+              {driversError && (
+                <div className="alert alert-error">{driversError}</div>
+              )}
+              {!driversLoading &&
+                !driversError &&
+                drivers.length === 0 && (
+                  <div className="alert alert-info">
+                    Nenhum piloto encontrado para esta corrida.
+                  </div>
+                )}
+              <div className="sport-league-list">
+                {drivers.map((d) => {
+                  const selected = selectedDriverIds.includes(d.driver_id);
+                  const atMax =
+                    !selected && selectedDriverIds.length >= MAX_DRIVERS;
+                  return (
+                    <button
+                      key={d.driver_id}
+                      type="button"
+                      className={`sport-league-card ${
+                        selected ? "sport-league-card-active" : ""
+                      }`}
+                      onClick={() => toggleDriver(d.driver_id)}
+                      disabled={atMax}
+                    >
+                      <span className="sport-league-name">
+                        {d.name}
+                        {d.team_name ? ` — ${d.team_name}` : ""}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
         </div>
       )}
 
+      {/* Step 3: regras */}
       {flow === "sport" && step === 3 && (
         <div className="create-bet-form card">
           <div className="form-group">
@@ -532,12 +936,10 @@ export default function CreateBetPage() {
           <div className="form-group">
             <label>Encerramento</label>
             <div className="form-readonly">
-              {selectedFixture
-                ? formatFixtureDate(selectedFixture.date)
-                : "-"}
+              {sportEventDate ? formatFixtureDate(sportEventDate) : "-"}
             </div>
             <span className="form-hint">
-              Entradas fecham automaticamente no horário do jogo
+              Entradas fecham automaticamente no horário do evento
             </span>
           </div>
           {sportRulesError && (
@@ -548,53 +950,57 @@ export default function CreateBetPage() {
         </div>
       )}
 
+      {/* Step 4: revisão */}
       {flow === "sport" && step === 4 && (
         <div className="create-bet-form card">
           <h3>Resumo da previsão</h3>
           <div className="review-section">
             <div className="review-item">
-              <span className="review-label">Liga</span>
+              <span className="review-label">Esporte</span>
               <span className="review-value">
-                {selectedLeague?.name || "-"}
+                {sportKind === "football" ? "Futebol" : "Fórmula 1"}
               </span>
             </div>
+            {sportKind === "football" && (
+              <div className="review-item">
+                <span className="review-label">Liga</span>
+                <span className="review-value">
+                  {selectedLeague?.name || "-"}
+                </span>
+              </div>
+            )}
+            {sportKind === "f1" && (
+              <div className="review-item">
+                <span className="review-label">Temporada</span>
+                <span className="review-value">{selectedSeason}</span>
+              </div>
+            )}
             <div className="review-item">
-              <span className="review-label">Partida</span>
-              <span className="review-value">
-                {selectedFixture
-                  ? `${selectedFixture.home_team} vs ${selectedFixture.away_team}`
-                  : "-"}
+              <span className="review-label">
+                {sportKind === "football" ? "Partida" : "Corrida"}
               </span>
+              <span className="review-value">{sportEventTitle}</span>
             </div>
             <div className="review-item">
-              <span className="review-label">Data do jogo</span>
+              <span className="review-label">Data do evento</span>
               <span className="review-value">
-                {selectedFixture
-                  ? formatFixtureDate(selectedFixture.date)
-                  : "-"}
+                {sportEventDate ? formatFixtureDate(sportEventDate) : "-"}
               </span>
             </div>
             <div className="review-item">
               <span className="review-label">Tipo de aposta</span>
               <span className="review-value">
-                {SPORT_TEMPLATES.find((t) => t.id === selectedTemplate)
-                  ?.label || "-"}
+                {selectedTemplateData?.label || "-"}
               </span>
             </div>
             <div className="review-item">
               <span className="review-label">Opções</span>
               <div className="review-options">
-                {selectedFixture && (
-                  <>
-                    <span className="review-option-tag">
-                      {selectedFixture.home_team}
-                    </span>
-                    <span className="review-option-tag">Empate</span>
-                    <span className="review-option-tag">
-                      {selectedFixture.away_team}
-                    </span>
-                  </>
-                )}
+                {sportOptionPreview.map((label) => (
+                  <span key={label} className="review-option-tag">
+                    {label}
+                  </span>
+                ))}
               </div>
             </div>
             <div className="review-item">

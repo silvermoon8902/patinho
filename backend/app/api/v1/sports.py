@@ -1,12 +1,20 @@
 import logging
+from datetime import datetime
 
 from fastapi import APIRouter, Query
 
+from app.integrations.api_f1 import api_f1_client
 from app.integrations.api_football import (
     SUPPORTED_LEAGUES,
     api_football_client,
 )
-from app.schemas.sports import LEAGUE_LABELS, FixtureResponse, LeagueResponse
+from app.schemas.sports import (
+    LEAGUE_LABELS,
+    DriverOption,
+    FixtureResponse,
+    LeagueResponse,
+    RaceResponse,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -87,3 +95,76 @@ async def list_league_fixtures(
         )
 
     return fixtures
+
+
+@router.get("/f1/races", response_model=list[RaceResponse])
+async def list_f1_races(
+    season: int = Query(default=2026, ge=2020, le=2099),
+) -> list[RaceResponse]:
+    """
+    List upcoming F1 races for the given season.
+    Returns [] when the upstream API fails or no races are found.
+    """
+    try:
+        raw_races = await api_f1_client.list_upcoming_races(season)
+    except Exception:
+        logger.exception("Failed to list upcoming F1 races for season %s", season)
+        return []
+
+    races: list[RaceResponse] = []
+    for raw in raw_races:
+        race_id = raw.get("race_id")
+        raw_date = raw.get("date")
+        if not race_id or not raw_date:
+            continue
+        try:
+            date_val = datetime.fromisoformat(raw_date.replace("Z", "+00:00"))
+        except (ValueError, AttributeError, TypeError):
+            continue
+        races.append(
+            RaceResponse(
+                race_id=str(race_id),
+                date=date_val,
+                circuit_name=raw.get("circuit_name") or "",
+                circuit_location=raw.get("circuit_location") or "",
+                competition_name=raw.get("competition_name") or "",
+            )
+        )
+
+    return races
+
+
+@router.get(
+    "/f1/races/{race_id}/drivers",
+    response_model=list[DriverOption],
+)
+async def list_f1_race_drivers(race_id: str) -> list[DriverOption]:
+    """
+    List drivers available for the given race. Falls back to the
+    current-season driver standings when no grid/results are set yet.
+    """
+    try:
+        raw_drivers = await api_f1_client.list_race_drivers(race_id)
+    except Exception:
+        logger.exception("Failed to list F1 drivers for race %s", race_id)
+        return []
+
+    drivers: list[DriverOption] = []
+    seen: set[str] = set()
+    for raw in raw_drivers:
+        did = raw.get("driver_id")
+        name = raw.get("name")
+        if not did or not name:
+            continue
+        if did in seen:
+            continue
+        seen.add(did)
+        drivers.append(
+            DriverOption(
+                driver_id=str(did),
+                name=str(name),
+                team_name=str(raw.get("team_name") or ""),
+            )
+        )
+
+    return drivers

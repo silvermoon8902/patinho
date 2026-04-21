@@ -70,23 +70,24 @@ async def create_sport_bet(
     db: AsyncSession,
     user_id: UUID,
     *,
-    fixture_id: str,
-    home_team: str,
-    away_team: str,
-    kickoff_at: datetime,
-    league_name: str | None,
     template: str,
     entry_amount: Decimal,
     max_participants: int,
+    fixture_data: dict | None = None,
+    race_data: dict | None = None,
+    driver_names: list[str] | None = None,
 ) -> Bet:
     """
-    Create a sport bet wired to an API-Football fixture.
+    Create a sport bet wired to an external API event.
 
-    The options are pre-computed from the template (today only
-    'match_winner' is supported) and the closing time is forced to the
-    fixture kickoff so entries close when the match starts. The bet is
-    tagged with resolution_type=AUTO_API and sports_match_id so the
-    existing Celery resolution pipeline can auto-resolve it.
+    Dispatches by template:
+      - match_winner (football): options = [home, DRAW_LABEL, away]
+      - exact_score (football): options = common scorelines + "Outro"
+      - f1_winner (F1): options = selected subset of drivers
+
+    For all templates the bet is tagged with resolution_type=AUTO_API
+    plus sports_match_id so the existing Celery pipeline can
+    auto-resolve it. closes_at is forced to the event start time.
     """
     active_count = await get_active_bet_count(db, user_id)
     if active_count >= 10:
@@ -95,43 +96,115 @@ async def create_sport_bet(
             detail="Maximum of 10 active bets reached",
         )
 
-    if kickoff_at.tzinfo is None:
-        closes_at = kickoff_at.replace(tzinfo=timezone.utc)
-    else:
-        closes_at = kickoff_at
-
-    if closes_at <= datetime.now(timezone.utc):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Esta partida já começou ou terminou",
-        )
+    title: str
+    options: list[str]
+    closes_at: datetime
+    sports_match_id: str
+    category: str
+    description_parts: list[str] = []
 
     if template == "match_winner":
-        option_labels = [home_team, DRAW_LABEL, away_team]
+        if not fixture_data:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Dados da partida ausentes",
+            )
+        home = fixture_data["home_team"]
+        away = fixture_data["away_team"]
+        title = f"{home} vs {away}"
+        options = [home, DRAW_LABEL, away]
+        closes_at = fixture_data["kickoff_at"]
+        sports_match_id = str(fixture_data["fixture_id"])
+        category = "football"
+        if fixture_data.get("league_name"):
+            description_parts.append(fixture_data["league_name"])
+
+    elif template == "exact_score":
+        if not fixture_data:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Dados da partida ausentes",
+            )
+        home = fixture_data["home_team"]
+        away = fixture_data["away_team"]
+        title = f"Placar: {home} vs {away}"
+        options = [
+            "0x0",
+            "1x0",
+            "0x1",
+            "1x1",
+            "2x0",
+            "0x2",
+            "2x1",
+            "1x2",
+            "Outro",
+        ]
+        closes_at = fixture_data["kickoff_at"]
+        sports_match_id = str(fixture_data["fixture_id"])
+        category = "football"
+        if fixture_data.get("league_name"):
+            description_parts.append(fixture_data["league_name"])
+
+    elif template == "f1_winner":
+        if not race_data:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Dados da corrida ausentes",
+            )
+        if not driver_names or len(driver_names) < 2:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Informe pelo menos 2 pilotos",
+            )
+        if len(driver_names) > 10:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Máximo de 10 pilotos",
+            )
+        competition = race_data.get("competition_name") or "Corrida"
+        circuit = race_data.get("circuit_name") or ""
+        if circuit:
+            title = f"Vencedor: {competition} - {circuit}"
+        else:
+            title = f"Vencedor: {competition}"
+        options = list(driver_names)
+        closes_at = race_data["date"]
+        sports_match_id = str(race_data["race_id"])
+        category = "f1"
+        if competition:
+            description_parts.append(competition)
+
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Template de aposta não suportado: {template}",
         )
 
-    # Defensive dedup in case the two team names happen to collide
+    if closes_at.tzinfo is None:
+        closes_at = closes_at.replace(tzinfo=timezone.utc)
+
+    if closes_at <= datetime.now(timezone.utc):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="O evento já começou ou terminou",
+        )
+
+    # Defensive dedup while preserving order
     seen: set[str] = set()
     unique_labels: list[str] = []
-    for label in option_labels:
+    for label in options:
+        label = label.strip()
+        if not label:
+            continue
         if label not in seen:
             seen.add(label)
             unique_labels.append(label)
     if len(unique_labels) < 2:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Não foi possível gerar opções válidas para esta partida",
+            detail="Não foi possível gerar opções válidas para este evento",
         )
 
-    title = f"{home_team} vs {away_team}"
-
-    description_parts: list[str] = []
-    if league_name:
-        description_parts.append(league_name)
     description_parts.append(
         closes_at.astimezone(timezone.utc).strftime("%d/%m/%Y %H:%M UTC")
     )
@@ -144,12 +217,13 @@ async def create_sport_bet(
         title=title,
         description=description,
         invite_token=invite_token,
-        category="football",
+        category=category,
         resolution_type=ResolutionType.AUTO_API,
         status=BetStatus.OPEN,
         entry_amount=entry_amount,
         max_participants=max_participants,
-        sports_match_id=str(fixture_id),
+        sports_match_id=sports_match_id,
+        template=template,
         closes_at=closes_at,
     )
     db.add(bet)

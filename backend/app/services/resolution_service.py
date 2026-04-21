@@ -3,7 +3,6 @@ from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from app.models.bet import Bet, BetStatus
 from app.models.bet_option import BetOption
@@ -14,10 +13,15 @@ logger = logging.getLogger(__name__)
 
 async def resolve_sports_bet(db: AsyncSession, bet_id: UUID) -> bool:
     """
-    Resolve a sports bet using API-Football results.
-    Called by Celery task when a match finishes.
+    Resolve a sports bet using the relevant upstream API.
+
+    Dispatches by bet.template (None is treated as match_winner for
+    backwards compatibility with bets created before the template column
+    was introduced). Called by a Celery task once an event has finished.
+
     Returns True if resolved, False if not yet finished.
     """
+    from app.integrations.api_f1 import api_f1_client
     from app.integrations.api_football import api_football_client
 
     bet = await db.get(Bet, bet_id)
@@ -26,55 +30,141 @@ async def resolve_sports_bet(db: AsyncSession, bet_id: UUID) -> bool:
         return False
 
     if bet.status != BetStatus.LOCKED:
-        logger.warning("Bet %s is not locked (status=%s), skipping", bet_id, bet.status)
+        logger.warning(
+            "Bet %s is not locked (status=%s), skipping", bet_id, bet.status
+        )
         return False
 
     if not bet.sports_match_id:
         logger.warning("Bet %s has no sports_match_id", bet_id)
         return False
 
-    fixture_result = await api_football_client.get_fixture_result(bet.sports_match_id)
-    if fixture_result is None:
-        # Match not finished yet
-        return False
-
-    # Load bet options
+    # Load options once — every branch needs them
     result = await db.execute(
         select(BetOption).where(BetOption.bet_id == bet_id)
     )
     options = list(result.scalars().all())
 
-    # Map fixture result to winning option
-    # Convention: option labels match "Home", "Draw", "Away" or team names
-    winner_label = fixture_result.get("winner")  # "Home", "Draw", "Away"
-    winning_option = None
+    template = bet.template or "match_winner"
 
-    if winner_label:
-        # Try exact match first
-        for opt in options:
-            if opt.label.lower() == winner_label.lower():
-                winning_option = opt
-                break
+    if template == "match_winner":
+        fixture_result = await api_football_client.get_fixture_result(
+            bet.sports_match_id
+        )
+        if fixture_result is None:
+            return False
 
-        # Try partial match (e.g., team name in option label)
-        if not winning_option:
+        winner_label = fixture_result.get("winner")  # team name or "Empate"
+        winning_option: BetOption | None = None
+
+        if winner_label:
             for opt in options:
-                if winner_label.lower() in opt.label.lower():
+                if opt.label.lower() == winner_label.lower():
                     winning_option = opt
                     break
+            if not winning_option:
+                for opt in options:
+                    if winner_label.lower() in opt.label.lower():
+                        winning_option = opt
+                        break
 
-    if not winning_option:
-        logger.error(
-            "Could not map winner '%s' to any option for bet %s. Options: %s",
-            winner_label,
+        if not winning_option:
+            logger.error(
+                "Could not map winner '%s' to any option for bet %s. Options: %s",
+                winner_label,
+                bet_id,
+                [o.label for o in options],
+            )
+            return False
+
+        await distribute_prizes(db, bet_id, winning_option.id)
+        logger.info(
+            "Resolved match_winner bet %s with option %s",
             bet_id,
-            [o.label for o in options],
+            winning_option.id,
         )
-        return False
+        return True
 
-    await distribute_prizes(db, bet_id, winning_option.id)
-    logger.info("Resolved sports bet %s with winner option %s", bet_id, winning_option.id)
-    return True
+    if template == "exact_score":
+        fixture_result = await api_football_client.get_fixture_result(
+            bet.sports_match_id
+        )
+        if fixture_result is None:
+            return False
+
+        home_score = fixture_result.get("home_score", 0)
+        away_score = fixture_result.get("away_score", 0)
+        target = f"{home_score}x{away_score}"
+
+        winning_option = next(
+            (o for o in options if o.label == target), None
+        )
+        if not winning_option:
+            # Fallback bucket for any score not in the preset list
+            winning_option = next(
+                (o for o in options if o.label == "Outro"), None
+            )
+
+        if not winning_option:
+            logger.error(
+                "exact_score resolution: no matching option for %s in bet %s. Options: %s",
+                target,
+                bet_id,
+                [o.label for o in options],
+            )
+            return False
+
+        await distribute_prizes(db, bet_id, winning_option.id)
+        logger.info(
+            "Resolved exact_score bet %s: score=%s option=%s",
+            bet_id,
+            target,
+            winning_option.id,
+        )
+        return True
+
+    if template == "f1_winner":
+        winner_name = await api_f1_client.get_race_winner(bet.sports_match_id)
+        if not winner_name:
+            return False
+
+        winning_option = next(
+            (o for o in options if o.label.lower() == winner_name.lower()),
+            None,
+        )
+        if not winning_option:
+            # Try matching on last-name (common F1 driver rendering)
+            parts = winner_name.split()
+            last = parts[-1].lower() if parts else ""
+            if last:
+                winning_option = next(
+                    (o for o in options if last in o.label.lower()), None
+                )
+
+        if not winning_option:
+            logger.error(
+                "Could not map F1 winner '%s' to any option for bet %s. Options: %s",
+                winner_name,
+                bet_id,
+                [o.label for o in options],
+            )
+            return False
+
+        await distribute_prizes(db, bet_id, winning_option.id)
+        logger.info(
+            "Resolved f1_winner bet %s with option %s (winner=%s)",
+            bet_id,
+            winning_option.id,
+            winner_name,
+        )
+        return True
+
+    logger.error(
+        "Unknown template '%s' for bet %s; cannot resolve",
+        template,
+        bet_id,
+    )
+    return False
 
 
 async def check_voting_consensus(db: AsyncSession, bet_id: UUID) -> bool:

@@ -48,6 +48,7 @@ class Bet(Base):
     )
     max_participants: Mapped[int] = mapped_column(default=100)
     sports_match_id: Mapped[str | None] = mapped_column(String(100))
+    template: Mapped[str | None] = mapped_column(String(50))
     mediator_user_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("users.id")
     )

@@ -8,7 +8,7 @@ import apiClient from "@/api/client";
 
 const CATEGORY_LABELS: Record<string, string> = {
   football: "Futebol",
-  f1: "F1",
+  f1: "Fórmula 1",
   tennis: "Tênis",
   bbb: "BBB",
   politics: "Política",

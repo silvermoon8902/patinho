@@ -30,6 +30,20 @@ export interface SportFixture {
   league_name?: string | null;
 }
 
+export interface SportRace {
+  race_id: string;
+  date: string;
+  circuit_name: string;
+  circuit_location: string;
+  competition_name: string;
+}
+
+export interface SportDriver {
+  driver_id: string;
+  name: string;
+  team_name: string;
+}
+
 interface SportsState {
   leagues: SportLeague[];
   leaguesLoading: boolean;
@@ -39,6 +53,16 @@ interface SportsState {
   fixturesLoading: boolean;
   fixturesError: string | null;
   fixturesLeagueId: string | null;
+
+  races: SportRace[];
+  racesLoading: boolean;
+  racesError: string | null;
+  racesSeason: number | null;
+
+  drivers: SportDriver[];
+  driversLoading: boolean;
+  driversError: string | null;
+  driversRaceId: string | null;
 
   createLoading: boolean;
   createError: string | null;
@@ -53,6 +77,16 @@ const initialState: SportsState = {
   fixturesLoading: false,
   fixturesError: null,
   fixturesLeagueId: null,
+
+  races: [],
+  racesLoading: false,
+  racesError: null,
+  racesSeason: null,
+
+  drivers: [],
+  driversLoading: false,
+  driversError: null,
+  driversRaceId: null,
 
   createLoading: false,
   createError: null,
@@ -93,9 +127,45 @@ export const fetchFixtures = createAsyncThunk(
   }
 );
 
+export const fetchRaces = createAsyncThunk(
+  "sports/fetchRaces",
+  async (season: number, { rejectWithValue }) => {
+    try {
+      const response = await apiClient.get(
+        `/sports/f1/races?season=${season}`
+      );
+      return {
+        season,
+        races: response.data as SportRace[],
+      };
+    } catch (error: unknown) {
+      return rejectWithValue(extractError(error, "Erro ao carregar corridas"));
+    }
+  }
+);
+
+export const fetchRaceDrivers = createAsyncThunk(
+  "sports/fetchRaceDrivers",
+  async (raceId: string, { rejectWithValue }) => {
+    try {
+      const response = await apiClient.get(
+        `/sports/f1/races/${raceId}/drivers`
+      );
+      return {
+        raceId,
+        drivers: response.data as SportDriver[],
+      };
+    } catch (error: unknown) {
+      return rejectWithValue(extractError(error, "Erro ao carregar pilotos"));
+    }
+  }
+);
+
 export interface CreateSportBetPayload {
-  fixture_id: string;
   template: string;
+  fixture_id?: string | null;
+  race_id?: string | null;
+  driver_names?: string[] | null;
   entry_amount: number;
   max_participants: number;
 }
@@ -121,12 +191,24 @@ const sportsSlice = createSlice({
     clearSportsError(state) {
       state.leaguesError = null;
       state.fixturesError = null;
+      state.racesError = null;
+      state.driversError = null;
       state.createError = null;
     },
     clearFixtures(state) {
       state.fixtures = [];
       state.fixturesLeagueId = null;
       state.fixturesError = null;
+    },
+    clearRaces(state) {
+      state.races = [];
+      state.racesSeason = null;
+      state.racesError = null;
+    },
+    clearDrivers(state) {
+      state.drivers = [];
+      state.driversRaceId = null;
+      state.driversError = null;
     },
   },
   extraReducers: (builder) => {
@@ -160,6 +242,38 @@ const sportsSlice = createSlice({
       state.fixturesError = action.payload as string;
     });
 
+    // Races
+    builder.addCase(fetchRaces.pending, (state, action) => {
+      state.racesLoading = true;
+      state.racesError = null;
+      state.racesSeason = action.meta.arg;
+    });
+    builder.addCase(fetchRaces.fulfilled, (state, action) => {
+      state.racesLoading = false;
+      state.races = action.payload.races;
+      state.racesSeason = action.payload.season;
+    });
+    builder.addCase(fetchRaces.rejected, (state, action) => {
+      state.racesLoading = false;
+      state.racesError = action.payload as string;
+    });
+
+    // Drivers
+    builder.addCase(fetchRaceDrivers.pending, (state, action) => {
+      state.driversLoading = true;
+      state.driversError = null;
+      state.driversRaceId = action.meta.arg;
+    });
+    builder.addCase(fetchRaceDrivers.fulfilled, (state, action) => {
+      state.driversLoading = false;
+      state.drivers = action.payload.drivers;
+      state.driversRaceId = action.payload.raceId;
+    });
+    builder.addCase(fetchRaceDrivers.rejected, (state, action) => {
+      state.driversLoading = false;
+      state.driversError = action.payload as string;
+    });
+
     // Create sport bet
     builder.addCase(createSportBet.pending, (state) => {
       state.createLoading = true;
@@ -175,5 +289,10 @@ const sportsSlice = createSlice({
   },
 });
 
-export const { clearSportsError, clearFixtures } = sportsSlice.actions;
+export const {
+  clearSportsError,
+  clearFixtures,
+  clearRaces,
+  clearDrivers,
+} = sportsSlice.actions;
 export default sportsSlice.reducer;
