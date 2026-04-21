@@ -1,3 +1,4 @@
+import logging
 from uuid import UUID
 
 from fastapi import Depends, HTTPException, status
@@ -16,6 +17,8 @@ from app.utils.security import (
     hash_password,
     verify_password,
 )
+
+logger = logging.getLogger(__name__)
 
 security_scheme = HTTPBearer()
 
@@ -152,3 +155,75 @@ async def get_admin_user(
             detail="Admin access required",
         )
     return user
+
+
+async def request_password_reset(db: AsyncSession, email: str) -> None:
+    """Generate reset token and send email. Silent if user doesn't exist (security)."""
+    import secrets as secrets_mod
+    from datetime import datetime, timedelta, timezone
+
+    from app.config import settings
+    from app.models.password_reset_token import PasswordResetToken
+    from app.services import email_service
+
+    result = await db.execute(select(User).where(User.email == email))
+    user = result.scalar_one_or_none()
+    if not user:
+        return  # silent for security
+
+    token = secrets_mod.token_urlsafe(32)
+    reset = PasswordResetToken(
+        user_id=user.id,
+        token=token,
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+    )
+    db.add(reset)
+    await db.flush()
+
+    reset_url = f"{settings.APP_URL}/reset-password/{token}"
+    html, text = email_service.render_password_reset(user.username, reset_url)
+    try:
+        await email_service.send_email(
+            user.email, "Redefinir senha — Patinho", html, text
+        )
+    except Exception:
+        logger.exception("Failed to send password reset email to %s", user.email)
+
+
+async def reset_password(db: AsyncSession, token: str, new_password: str) -> None:
+    from datetime import datetime, timezone
+
+    from app.models.password_reset_token import PasswordResetToken
+
+    result = await db.execute(
+        select(PasswordResetToken).where(PasswordResetToken.token == token)
+    )
+    reset = result.scalar_one_or_none()
+    if not reset:
+        raise HTTPException(status_code=400, detail="Token inválido")
+    if reset.used_at:
+        raise HTTPException(status_code=400, detail="Token já utilizado")
+    if reset.expires_at < datetime.now(timezone.utc):
+        raise HTTPException(status_code=400, detail="Token expirado")
+
+    user = await db.get(User, reset.user_id)
+    if not user:
+        raise HTTPException(status_code=400, detail="Usuário não encontrado")
+
+    user.hashed_password = hash_password(new_password)
+    reset.used_at = datetime.now(timezone.utc)
+    await db.flush()
+
+
+async def send_welcome_email(user: User) -> None:
+    """Send a welcome email. Best-effort — never crashes the caller."""
+    from app.config import settings
+    from app.services import email_service
+
+    try:
+        html, text = email_service.render_welcome(user.username, settings.APP_URL)
+        await email_service.send_email(
+            user.email, "Bem-vindo ao Patinho", html, text
+        )
+    except Exception:
+        logger.exception("Failed to send welcome email to %s", user.email)

@@ -4,6 +4,8 @@ import Layout from "@/components/shared/Layout";
 import ProtectedRoute from "@/components/shared/ProtectedRoute";
 import LoginPage from "@/pages/auth/LoginPage";
 import RegisterPage from "@/pages/auth/RegisterPage";
+import ForgotPasswordPage from "@/pages/auth/ForgotPasswordPage";
+import ResetPasswordPage from "@/pages/auth/ResetPasswordPage";
 import DashboardPage from "@/pages/dashboard/DashboardPage";
 import WalletPage from "@/pages/wallet/WalletPage";
 import BetsListPage from "@/pages/bets/BetsListPage";
@@ -44,6 +46,8 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
         <Route path="/invite/:inviteToken" element={<InvitePage />} />
         <Route
           element={

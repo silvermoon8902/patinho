@@ -7,12 +7,14 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.models.admin_fee import AdminFee, FeeType
 from app.models.bet import Bet, BetStatus
 from app.models.bet_option import BetOption
 from app.models.participation import Participation
 from app.models.platform_config import PlatformConfig
-from app.services import wallet_service
+from app.models.user import User
+from app.services import email_service, wallet_service
 from app.services import ranking_service
 
 logger = logging.getLogger(__name__)
@@ -174,6 +176,35 @@ async def distribute_prizes(
         if uid not in seen_users:
             seen_users.add(uid)
             award_badges_task.delay(uid)
+
+    # Best-effort prize-won emails for each winner (never crash distribution)
+    for w in winners:
+        if not w.prize_amount or w.prize_amount <= 0:
+            continue
+        try:
+            winner_user = await db.get(User, w.user_id)
+            if not winner_user:
+                continue
+            amount_str = f"R$ {w.prize_amount:.2f}".replace(".", ",")
+            bet_url = f"{settings.APP_URL}/bets/{bet_id}"
+            html, text = email_service.render_prize_won(
+                winner_user.username,
+                bet.title,
+                amount_str,
+                bet_url,
+            )
+            await email_service.send_email(
+                winner_user.email,
+                "Parabéns! Você ganhou um desafio — Patinho",
+                html,
+                text,
+            )
+        except Exception:
+            logger.exception(
+                "Failed to send prize email to user %s for bet %s",
+                w.user_id,
+                bet_id,
+            )
 
     logger.info(
         "Distributed prizes for bet %s: pool=%s, fee=%s, winners=%d",
