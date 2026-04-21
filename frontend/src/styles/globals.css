@@ -2942,3 +2942,38 @@ html[data-theme="dark"] .action-label {
 html[data-theme="dark"] .action-card:hover {
   background-color: var(--color-surface-alt);
 }
+
+/* ===== Input with prefix (R$ etc) ===== */
+.input-with-prefix {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-prefix {
+  position: absolute;
+  left: 14px;
+  color: var(--color-gray-500);
+  font-weight: 600;
+  font-size: 1rem;
+  pointer-events: none;
+}
+
+.input-with-prefix input {
+  padding-left: 44px;
+}
+
+.form-hint {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.8rem;
+  color: var(--color-gray-500);
+}
+
+html[data-theme="dark"] .input-prefix {
+  color: var(--color-text-muted);
+}
+
+html[data-theme="dark"] .form-hint {
+  color: var(--color-text-muted);
+}

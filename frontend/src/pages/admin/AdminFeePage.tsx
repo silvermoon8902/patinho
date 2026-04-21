@@ -51,7 +51,7 @@ export default function AdminFeePage() {
 
   return (
     <div className="admin-page">
-      <h1 className="admin-page-title">Configuracao de Taxa</h1>
+      <h1 className="admin-page-title">Configuração de Taxa</h1>
 
       {error && <div className="alert alert-error">{error}</div>}
       {saved && (
@@ -108,7 +108,7 @@ export default function AdminFeePage() {
         </div>
 
         <button className="btn btn-primary btn-full" onClick={handleSave}>
-          Salvar Configuracao
+          Salvar Configuração
         </button>
       </div>
     </div>

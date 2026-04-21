@@ -7,13 +7,13 @@ import { createBet } from "@/store/betSlice";
 const CATEGORIES = [
   { value: "football", label: "Futebol" },
   { value: "f1", label: "F1" },
-  { value: "tennis", label: "Tenis" },
+  { value: "tennis", label: "Tênis" },
   { value: "bbb", label: "BBB" },
-  { value: "politics", label: "Politica" },
+  { value: "politics", label: "Política" },
   { value: "custom", label: "Outro" },
 ];
 
-const STEPS = ["Informacoes", "Opcoes", "Regras", "Revisao"];
+const STEPS = ["Informações", "Opções", "Regras", "Revisão"];
 
 const MIN_ENTRY = 5;
 const MAX_ENTRY = 1000;
@@ -35,9 +35,12 @@ export default function CreateBetPage() {
 
   // Step 3: Rules
   const [resolutionType, setResolutionType] = useState<"auto_api" | "voting">("voting");
-  const [entryAmount, setEntryAmount] = useState(MIN_ENTRY);
-  const [maxParticipants, setMaxParticipants] = useState(100);
+  const [entryAmountText, setEntryAmountText] = useState(String(MIN_ENTRY));
+  const [maxParticipantsText, setMaxParticipantsText] = useState("100");
   const [closesAt, setClosesAt] = useState("");
+
+  const entryAmount = parseFloat(entryAmountText) || 0;
+  const maxParticipants = parseInt(maxParticipantsText) || 0;
 
   const addOption = () => {
     setOptions([...options, ""]);
@@ -54,6 +57,26 @@ export default function CreateBetPage() {
     setOptions(updated);
   };
 
+  const MIN_PARTICIPANTS = 2;
+  const MAX_PARTICIPANTS = 100;
+
+  const rulesError = (() => {
+    if (step !== 2) return null;
+    if (entryAmount < MIN_ENTRY || entryAmount > MAX_ENTRY) {
+      return `Valor de entrada deve estar entre R$ ${MIN_ENTRY},00 e R$ ${MAX_ENTRY.toLocaleString("pt-BR")},00`;
+    }
+    if (maxParticipants < MIN_PARTICIPANTS || maxParticipants > MAX_PARTICIPANTS) {
+      return `Número de participantes deve estar entre ${MIN_PARTICIPANTS} e ${MAX_PARTICIPANTS}`;
+    }
+    if (!closesAt) {
+      return "Informe a data de encerramento";
+    }
+    if (new Date(closesAt) <= new Date()) {
+      return "A data de encerramento deve ser no futuro";
+    }
+    return null;
+  })();
+
   const canAdvance = (): boolean => {
     switch (step) {
       case 0:
@@ -63,7 +86,7 @@ export default function CreateBetPage() {
           options.filter((o) => o.trim().length > 0).length >= 2
         );
       case 2:
-        return closesAt.length > 0 && entryAmount >= MIN_ENTRY && entryAmount <= MAX_ENTRY;
+        return rulesError === null;
       default:
         return true;
     }
@@ -135,17 +158,17 @@ export default function CreateBetPage() {
       {step === 0 && (
         <div className="create-bet-form card">
           <div className="form-group">
-            <label>Titulo do desafio</label>
+            <label>Título do desafio</label>
             <input
               type="text"
-              placeholder="Ex: Quem ganha o classico?"
+              placeholder="Ex: Quem ganha o clássico?"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               maxLength={100}
             />
           </div>
           <div className="form-group">
-            <label>Descricao (opcional)</label>
+            <label>Descrição (opcional)</label>
             <textarea
               className="form-textarea"
               placeholder="Descreva os detalhes do desafio..."
@@ -176,15 +199,15 @@ export default function CreateBetPage() {
       {step === 1 && (
         <div className="create-bet-form card">
           <p className="form-hint">
-            Adicione pelo menos 2 opcoes para o desafio.
+            Adicione pelo menos 2 opções para o desafio.
           </p>
           {options.map((opt, i) => (
             <div key={i} className="option-row">
               <div className="form-group option-input-group">
-                <label>Opcao {i + 1}</label>
+                <label>Opção {i + 1}</label>
                 <input
                   type="text"
-                  placeholder={`Opcao ${i + 1}`}
+                  placeholder={`Opção ${i + 1}`}
                   value={opt}
                   onChange={(e) => updateOption(i, e.target.value)}
                   maxLength={100}
@@ -206,7 +229,7 @@ export default function CreateBetPage() {
             className="btn btn-secondary btn-full"
             onClick={addOption}
           >
-            Adicionar opcao
+            Adicionar opção
           </button>
         </div>
       )}
@@ -215,7 +238,7 @@ export default function CreateBetPage() {
       {step === 2 && (
         <div className="create-bet-form card">
           <div className="form-group">
-            <label>Tipo de resolucao</label>
+            <label>Tipo de resolução</label>
             <select
               className="form-select"
               value={resolutionType}
@@ -223,29 +246,44 @@ export default function CreateBetPage() {
                 setResolutionType(e.target.value as "auto_api" | "voting")
               }
             >
-              <option value="voting">Votacao (Desafio Personalizado)</option>
-              <option value="auto_api">Automatico (Previsao Esportiva)</option>
+              <option value="voting">Votação (Desafio Personalizado)</option>
+              <option value="auto_api">Automático (Previsão Esportiva)</option>
             </select>
           </div>
           <div className="form-group">
-            <label>Valor de entrada (R$)</label>
-            <input
-              type="number"
-              min={MIN_ENTRY}
-              max={MAX_ENTRY}
-              value={entryAmount}
-              onChange={(e) => setEntryAmount(Number(e.target.value))}
-            />
+            <label>Valor de entrada</label>
+            <div className="input-with-prefix">
+              <span className="input-prefix">R$</span>
+              <input
+                type="text"
+                inputMode="decimal"
+                placeholder="0,00"
+                value={entryAmountText}
+                onChange={(e) => {
+                  const v = e.target.value.replace(",", ".").replace(/[^0-9.]/g, "");
+                  setEntryAmountText(v);
+                }}
+              />
+            </div>
+            <span className="form-hint">
+              Entre R$ {MIN_ENTRY},00 e R$ {MAX_ENTRY.toLocaleString("pt-BR")},00
+            </span>
           </div>
           <div className="form-group">
-            <label>Maximo de participantes</label>
+            <label>Máximo de participantes</label>
             <input
-              type="number"
-              min={2}
-              max={1000}
-              value={maxParticipants}
-              onChange={(e) => setMaxParticipants(Number(e.target.value))}
+              type="text"
+              inputMode="numeric"
+              placeholder="Ex: 20"
+              value={maxParticipantsText}
+              onChange={(e) => {
+                const v = e.target.value.replace(/[^0-9]/g, "");
+                setMaxParticipantsText(v);
+              }}
             />
+            <span className="form-hint">
+              Entre {MIN_PARTICIPANTS} e {MAX_PARTICIPANTS} participantes
+            </span>
           </div>
           <div className="form-group">
             <label>Data e hora de encerramento</label>
@@ -256,7 +294,15 @@ export default function CreateBetPage() {
               onChange={(e) => setClosesAt(e.target.value)}
               min={new Date().toISOString().slice(0, 16)}
             />
+            <span className="form-hint">
+              Após esta data, novas participações não são aceitas
+            </span>
           </div>
+          {rulesError && (
+            <div className="alert alert-error" style={{ marginTop: "8px" }}>
+              {rulesError}
+            </div>
+          )}
         </div>
       )}
 
@@ -266,12 +312,12 @@ export default function CreateBetPage() {
           <h3>Resumo do desafio</h3>
           <div className="review-section">
             <div className="review-item">
-              <span className="review-label">Titulo</span>
+              <span className="review-label">Título</span>
               <span className="review-value">{title}</span>
             </div>
             {description && (
               <div className="review-item">
-                <span className="review-label">Descricao</span>
+                <span className="review-label">Descrição</span>
                 <span className="review-value">{description}</span>
               </div>
             )}
@@ -280,7 +326,7 @@ export default function CreateBetPage() {
               <span className="review-value">{getCategoryLabel(category)}</span>
             </div>
             <div className="review-item">
-              <span className="review-label">Opcoes</span>
+              <span className="review-label">Opções</span>
               <div className="review-options">
                 {options
                   .filter((o) => o.trim())
@@ -292,9 +338,9 @@ export default function CreateBetPage() {
               </div>
             </div>
             <div className="review-item">
-              <span className="review-label">Resolucao</span>
+              <span className="review-label">Resolução</span>
               <span className="review-value">
-                {resolutionType === "voting" ? "Votacao" : "Automatico (API)"}
+                {resolutionType === "voting" ? "Votação" : "Automático (API)"}
               </span>
             </div>
             <div className="review-item">
@@ -337,7 +383,7 @@ export default function CreateBetPage() {
             onClick={handleNext}
             disabled={!canAdvance()}
           >
-            Proximo
+            Próximo
           </button>
         ) : (
           <button

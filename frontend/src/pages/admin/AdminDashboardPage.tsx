@@ -26,7 +26,7 @@ export default function AdminDashboardPage() {
       {stats && (
         <div className="admin-stats-grid">
           <div className="admin-stat-card card">
-            <span className="admin-stat-label">Total de Usuarios</span>
+            <span className="admin-stat-label">Total de Usuários</span>
             <span className="admin-stat-value">{stats.total_users}</span>
           </div>
           <div className="admin-stat-card card">
@@ -53,12 +53,12 @@ export default function AdminDashboardPage() {
       )}
 
       <div className="admin-quick-links">
-        <h2>Acesso Rapido</h2>
+        <h2>Acesso Rápido</h2>
         <div className="admin-links-grid">
           <Link to="/admin/users" className="admin-link-card card">
-            <span className="admin-link-title">Usuarios</span>
+            <span className="admin-link-title">Usuários</span>
             <span className="admin-link-desc">
-              Gerenciar usuarios da plataforma
+              Gerenciar usuários da plataforma
             </span>
           </Link>
           <Link to="/admin/bets" className="admin-link-card card">

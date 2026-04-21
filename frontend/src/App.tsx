@@ -30,9 +30,9 @@ function NotFound() {
   return (
     <div className="not-found">
       <h1>404</h1>
-      <p>Pagina nao encontrada</p>
+      <p>Página não encontrada</p>
       <a href="/" className="btn btn-primary">
-        Voltar ao inicio
+        Voltar ao início
       </a>
     </div>
   );

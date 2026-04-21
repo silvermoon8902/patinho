@@ -38,12 +38,12 @@ export default function RegisterPage() {
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      setValidationError("E-mail invalido");
+      setValidationError("E-mail inválido");
       return false;
     }
 
     if (username.length < 3) {
-      setValidationError("Nome de usuario deve ter pelo menos 3 caracteres");
+      setValidationError("Nome de usuário deve ter pelo menos 3 caracteres");
       return false;
     }
 
@@ -53,17 +53,17 @@ export default function RegisterPage() {
     }
 
     if (password !== confirmPassword) {
-      setValidationError("As senhas nao coincidem");
+      setValidationError("As senhas não coincidem");
       return false;
     }
 
     if (!phone.trim() || phone.trim().length < 8) {
-      setValidationError("Telefone e obrigatorio");
+      setValidationError("Telefone é obrigatório");
       return false;
     }
 
     if (!birthDay || !birthMonth || !birthYear) {
-      setValidationError("Data de nascimento e obrigatoria");
+      setValidationError("Data de nascimento é obrigatória");
       return false;
     }
 
@@ -74,7 +74,7 @@ export default function RegisterPage() {
     let age = today.getFullYear() - y;
     if (today.getMonth() + 1 < m || (today.getMonth() + 1 === m && today.getDate() < d)) age--;
     if (age < 18) {
-      setValidationError("Voce precisa ter pelo menos 18 anos");
+      setValidationError("Você precisa ter pelo menos 18 anos");
       return false;
     }
 
@@ -125,7 +125,7 @@ export default function RegisterPage() {
           </div>
 
           <div className="form-group">
-            <label htmlFor="username">Nome de usuario</label>
+            <label htmlFor="username">Nome de usuário</label>
             <input
               id="username"
               type="text"
@@ -169,7 +169,7 @@ export default function RegisterPage() {
                 onChange={(e) => setBirthMonth(e.target.value)}
                 required
               >
-                <option value="">Mes</option>
+                <option value="">Mês</option>
                 {["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"].map((m, i) => (
                   <option key={i + 1} value={String(i + 1)}>{m}</option>
                 ))}
@@ -193,7 +193,7 @@ export default function RegisterPage() {
             <input
               id="password"
               type="password"
-              placeholder="Minimo 8 caracteres"
+              placeholder="Mínimo 8 caracteres"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -224,7 +224,7 @@ export default function RegisterPage() {
           </button>
 
           <p className="auth-link">
-            Ja tem conta?{" "}
+            Já tem conta?{" "}
             <Link to="/login">Entrar</Link>
           </p>
         </form>

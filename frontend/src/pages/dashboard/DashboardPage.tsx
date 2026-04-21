@@ -18,7 +18,7 @@ export default function DashboardPage() {
   return (
     <div className="dashboard-page">
       <div className="welcome-section">
-        <h1>Ola, {user?.username || "Jogador"}!</h1>
+        <h1>Olá, {user?.username || "Jogador"}!</h1>
         <p>Bem-vindo ao Patinho</p>
       </div>
 
@@ -36,7 +36,7 @@ export default function DashboardPage() {
       </div>
 
       <div className="quick-actions">
-        <h2>Acoes rapidas</h2>
+        <h2>Ações rápidas</h2>
         <div className="actions-grid">
           <Link to="/bets/create" className="card action-card">
             <span className="action-label">Criar Desafio</span>

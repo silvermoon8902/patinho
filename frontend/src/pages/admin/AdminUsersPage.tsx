@@ -40,7 +40,7 @@ export default function AdminUsersPage() {
 
   return (
     <div className="admin-page">
-      <h1 className="admin-page-title">Gerenciar Usuarios</h1>
+      <h1 className="admin-page-title">Gerenciar Usuários</h1>
 
       {error && <div className="alert alert-error">{error}</div>}
 
@@ -60,7 +60,7 @@ export default function AdminUsersPage() {
       {loading && <p className="empty-state">Carregando...</p>}
 
       {!loading && users.length === 0 && (
-        <p className="empty-state">Nenhum usuario encontrado</p>
+        <p className="empty-state">Nenhum usuário encontrado</p>
       )}
 
       {!loading && users.length > 0 && (
@@ -126,7 +126,7 @@ export default function AdminUsersPage() {
                           className="btn-action btn-action-secondary"
                           onClick={() => setConfirmAdminId(null)}
                         >
-                          Nao
+                          Não
                         </button>
                       </span>
                     ) : (
@@ -153,13 +153,13 @@ export default function AdminUsersPage() {
         >
           Anterior
         </button>
-        <span className="admin-page-indicator">Pagina {page}</span>
+        <span className="admin-page-indicator">Página {page}</span>
         <button
           className="btn btn-secondary btn-sm"
           disabled={users.length < 20}
           onClick={() => setPage(page + 1)}
         >
-          Proxima
+          Próxima
         </button>
       </div>
     </div>

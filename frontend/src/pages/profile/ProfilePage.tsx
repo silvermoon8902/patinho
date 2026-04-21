@@ -41,7 +41,7 @@ export default function ProfilePage() {
       <div className="card">
         <h3>Editar perfil</h3>
         <div className="form-group">
-          <label htmlFor="username">Nome de usuario</label>
+          <label htmlFor="username">Nome de usuário</label>
           <input
             id="username"
             type="text"
@@ -64,7 +64,7 @@ export default function ProfilePage() {
           onClick={handleSave}
           disabled={saving}
         >
-          {saving ? "Salvando..." : "Salvar alteracoes"}
+          {saving ? "Salvando..." : "Salvar alterações"}
         </button>
       </div>
 

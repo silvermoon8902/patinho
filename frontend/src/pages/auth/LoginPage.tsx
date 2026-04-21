@@ -82,7 +82,7 @@ export default function LoginPage() {
           </button>
 
           <p className="auth-link">
-            Nao tem conta?{" "}
+            Não tem conta?{" "}
             <Link to="/register">Criar conta</Link>
           </p>
         </form>

@@ -13,7 +13,7 @@ const STATUS_OPTIONS = [
   { value: "", label: "Todos" },
   { value: "open", label: "Aberta" },
   { value: "locked", label: "Travada" },
-  { value: "voting", label: "Votacao" },
+  { value: "voting", label: "Votação" },
   { value: "disputed", label: "Disputada" },
   { value: "resolved", label: "Resolvida" },
   { value: "cancelled", label: "Cancelada" },
@@ -23,7 +23,7 @@ const STATUS_LABELS: Record<string, string> = {
   draft: "Rascunho",
   open: "Aberta",
   locked: "Travada",
-  voting: "Votacao",
+  voting: "Votação",
   disputed: "Disputada",
   resolved: "Resolvida",
   cancelled: "Cancelada",
@@ -113,13 +113,13 @@ export default function AdminBetsPage() {
           <table className="admin-table">
             <thead>
               <tr>
-                <th>Titulo</th>
+                <th>Título</th>
                 <th>Categoria</th>
                 <th>Status</th>
                 <th>Participantes</th>
                 <th>Pote</th>
                 <th>Criada em</th>
-                <th>Acoes</th>
+                <th>Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -161,7 +161,7 @@ export default function AdminBetsPage() {
                               className="btn-action btn-action-secondary"
                               onClick={() => setConfirmCancelId(null)}
                             >
-                              Nao
+                              Não
                             </button>
                           </span>
                         ) : (
@@ -190,13 +190,13 @@ export default function AdminBetsPage() {
         >
           Anterior
         </button>
-        <span className="admin-page-indicator">Pagina {page}</span>
+        <span className="admin-page-indicator">Página {page}</span>
         <button
           className="btn btn-secondary btn-sm"
           disabled={bets.length < 20}
           onClick={() => setPage(page + 1)}
         >
-          Proxima
+          Próxima
         </button>
       </div>
 
@@ -210,7 +210,7 @@ export default function AdminBetsPage() {
             <p className="admin-modal-subtitle">{resolveModal.title}</p>
 
             <div className="form-group">
-              <label>Selecione a opcao vencedora:</label>
+              <label>Selecione a opção vencedora:</label>
               {resolveModal.options.map((opt) => (
                 <label key={opt.id} className="admin-radio-label">
                   <input
@@ -231,7 +231,7 @@ export default function AdminBetsPage() {
                 onClick={handleForceResolve}
                 disabled={!selectedOptionId}
               >
-                Confirmar Resolucao
+                Confirmar Resolução
               </button>
               <button
                 className="btn btn-secondary"

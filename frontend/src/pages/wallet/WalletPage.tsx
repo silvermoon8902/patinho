@@ -20,11 +20,11 @@ function formatDate(dateStr: string): string {
 }
 
 const transactionTypeLabels: Record<string, string> = {
-  deposit: "Deposito",
+  deposit: "Depósito",
   withdrawal: "Saque",
   bet_lock: "Entrada no desafio",
   bet_unlock: "Desafio encerrado",
-  prize_credit: "Premio recebido",
+  prize_credit: "Prêmio recebido",
   fee_debit: "Taxa da plataforma",
   refund: "Reembolso",
 };
@@ -77,7 +77,7 @@ export default function WalletPage() {
       {/* Balance card */}
       <div className="card balance-card">
         <div className="balance-section">
-          <span className="balance-label">Saldo disponivel</span>
+          <span className="balance-label">Saldo disponível</span>
           <span className="balance-value">
             {wallet ? formatCurrency(wallet.balance) : "R$ 0,00"}
           </span>
@@ -119,7 +119,7 @@ export default function WalletPage() {
         ) : (
           <div className="pix-payment">
             <p className="pix-instruction">
-              Escaneie o QR Code ou copie o codigo Pix abaixo:
+              Escaneie o QR Code ou copie o código Pix abaixo:
             </p>
             {depositPayment.pix_qr_code && (
               <div className="pix-qr">
@@ -147,7 +147,7 @@ export default function WalletPage() {
                 dispatch(fetchWallet());
               }}
             >
-              Fazer outro deposito
+              Fazer outro depósito
             </button>
           </div>
         )}
@@ -159,7 +159,7 @@ export default function WalletPage() {
       <div className="card">
         <h3>Extrato</h3>
         {transactions.length === 0 ? (
-          <p className="empty-state">Nenhuma transacao encontrada</p>
+          <p className="empty-state">Nenhuma transação encontrada</p>
         ) : (
           <ul className="transaction-list">
             {transactions.map((tx) => {

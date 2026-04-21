@@ -66,10 +66,16 @@ export default function BetsListPage() {
 
       {!loading && bets.length === 0 && (
         <div className="bets-empty card">
-          <p className="bets-empty-text">Nenhum desafio encontrado</p>
-          <Link to="/bets/create" className="btn btn-primary">
-            Criar seu primeiro desafio
-          </Link>
+          <p className="bets-empty-text">
+            {activeTab === "active" && "Nenhum desafio ativo no momento"}
+            {activeTab === "resolved" && "Você ainda não tem desafios encerrados"}
+            {activeTab === "all" && "Você ainda não tem desafios"}
+          </p>
+          {activeTab !== "resolved" && (
+            <Link to="/bets/create" className="btn btn-primary">
+              {activeTab === "all" ? "Criar seu primeiro desafio" : "Criar novo desafio"}
+            </Link>
+          )}
         </div>
       )}
 
