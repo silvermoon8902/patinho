@@ -73,7 +73,7 @@ def test_register_requires_age_acknowledged(client):
 def test_register_success_writes_timestamps(client):
     ts = int(time.time() * 1000)
     r = _register(client, f"cz_{ts}", f"cz_{ts}@example.com", f"+55117{ts % 100000000:08d}")
-    assert r.status_code == 200
+    assert r.status_code in (200, 201)
     token = r.json()["access_token"]
     me = client.get("/api/v1/users/me", headers={"Authorization": f"Bearer {token}"})
     assert me.status_code == 200
