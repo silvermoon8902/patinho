@@ -47,8 +47,8 @@ export default function BetCard({ bet }: BetCardProps) {
     e.preventDefault();
     e.stopPropagation();
     const inviteUrl = `${window.location.origin}/invite/${bet.invite_token}`;
-    const message = `Entra no meu desafio no Patinho! \u{1F3B2}\n${bet.title}\n${inviteUrl}`;
-    const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    const message = `Você foi convidado para o desafio "${bet.title}" no Patinho!\n\nClique no link abaixo para ver as regras e participar:\n\n${inviteUrl}`;
+    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
     window.open(url, "_blank", "noopener,noreferrer");
   };
 

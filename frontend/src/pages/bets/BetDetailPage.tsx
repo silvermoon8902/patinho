@@ -179,8 +179,10 @@ export default function BetDetailPage() {
 
   const handleShareWhatsApp = () => {
     if (!currentBet) return;
-    const message = `Entra no meu desafio no Patinho! \u{1F3B2}\n${currentBet.title}\n${getInviteUrl()}`;
-    const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    // URL must be on its own line (preceded by blank line) for WhatsApp auto-linkify
+    const inviteUrl = getInviteUrl();
+    const message = `Você foi convidado para o desafio "${currentBet.title}" no Patinho!\n\nClique no link abaixo para ver as regras e participar:\n\n${inviteUrl}`;
+    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
     window.open(url, "_blank", "noopener,noreferrer");
   };
 

@@ -1,5 +1,5 @@
 import { useState, useEffect, FormEvent } from "react";
-import { useNavigate, Link, useLocation } from "react-router-dom";
+import { useNavigate, Link, useLocation, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/useTheme";
 import patinhoLogo from "@/assets/patinho-logo.png";
@@ -13,15 +13,17 @@ export default function LoginPage() {
   const logoSrc = theme === "dark" ? patinhoLogoWhite : patinhoLogo;
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
 
   const explicitFrom = (location.state as { from?: string })?.from;
+  const redirectQuery = searchParams.get("redirect");
 
   useEffect(() => {
     if (isAuthenticated) {
-      const destination = explicitFrom || (user?.is_admin ? "/admin" : "/");
+      const destination = redirectQuery || explicitFrom || (user?.is_admin ? "/admin" : "/");
       navigate(destination, { replace: true });
     }
-  }, [isAuthenticated, user, navigate, explicitFrom]);
+  }, [isAuthenticated, user, navigate, explicitFrom, redirectQuery]);
 
   useEffect(() => {
     resetError();

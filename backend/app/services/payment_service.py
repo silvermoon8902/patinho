@@ -91,14 +91,27 @@ async def process_webhook(
         return
 
     mp_status = mp_data.get("status")
-    payment.webhook_payload = webhook_data
+
+    # Preserve direct_join metadata before overwriting with webhook data
+    metadata = dict(payment.webhook_payload or {})
+    is_direct_join = metadata.get("direct_join") is True
+
+    # Merge webhook data into payload without losing direct_join metadata
+    metadata["mp_webhook"] = webhook_data
+    payment.webhook_payload = metadata
 
     if mp_status == "approved":
         payment.status = PaymentStatus.APPROVED
         payment.mp_payment_id = mp_payment_id
-        await wallet_service.credit_deposit(
-            db, payment.user_id, payment.amount, payment.id
-        )
+        if is_direct_join:
+            # Direct join: credit + lock + create participation atomically
+            from app.services import direct_join_service
+            await direct_join_service.process_direct_join(db, payment.id)
+        else:
+            # Standard deposit: just credit the wallet
+            await wallet_service.credit_deposit(
+                db, payment.user_id, payment.amount, payment.id
+            )
     elif mp_status in ("rejected", "cancelled"):
         payment.status = PaymentStatus.REJECTED
     else:

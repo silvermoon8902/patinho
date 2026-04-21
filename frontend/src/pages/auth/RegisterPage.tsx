@@ -1,5 +1,5 @@
 import { useState, useEffect, FormEvent } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/useTheme";
 import patinhoLogo from "@/assets/patinho-logo.png";
@@ -20,12 +20,14 @@ export default function RegisterPage() {
   const { theme } = useTheme();
   const logoSrc = theme === "dark" ? patinhoLogoWhite : patinhoLogo;
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectTo = searchParams.get("redirect") || "/wallet";
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate("/wallet", { replace: true });
+      navigate(redirectTo, { replace: true });
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, redirectTo]);
 
   useEffect(() => {
     resetError();
