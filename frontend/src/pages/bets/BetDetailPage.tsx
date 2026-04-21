@@ -10,6 +10,7 @@ import {
   declareWinner,
   contestResult,
   acceptResult,
+  deleteBet,
 } from "@/store/betSlice";
 import { fetchMessages, clearChat } from "@/store/chatSlice";
 import { useWebSocket } from "@/hooks/useWebSocket";
@@ -164,6 +165,16 @@ export default function BetDetailPage() {
     }
   };
 
+  const handleDeleteBet = async () => {
+    if (!betId) return;
+    if (!window.confirm("Tem certeza que deseja excluir este desafio? Esta ação não pode ser desfeita.")) return;
+    const result = await dispatch(deleteBet(betId));
+    if (deleteBet.fulfilled.match(result)) {
+      showToast("Desafio excluído com sucesso", "success");
+      navigate("/bets");
+    }
+  };
+
   if (loading && !currentBet) {
     return (
       <div className="bet-detail-page">
@@ -274,6 +285,24 @@ export default function BetDetailPage() {
             {linkCopied ? "Copiado!" : "Copiar link"}
           </button>
         </div>
+        {isCreator &&
+          currentBet.status === "open" &&
+          currentBet.current_participants <= 1 && (
+            <>
+              <div className="share-divider" />
+              <button
+                type="button"
+                className="btn btn-danger btn-full"
+                onClick={handleDeleteBet}
+                disabled={loading}
+              >
+                Excluir desafio
+              </button>
+              <p className="form-hint" style={{ textAlign: "center", marginTop: "8px" }}>
+                Disponível apenas enquanto não há outros participantes
+              </p>
+            </>
+          )}
       </div>
 
       {/* Section tabs */}

@@ -214,6 +214,18 @@ export const acceptResult = createAsyncThunk(
   }
 );
 
+export const deleteBet = createAsyncThunk(
+  "bets/deleteBet",
+  async (betId: string, { rejectWithValue }) => {
+    try {
+      await apiClient.delete(`/bets/${betId}`);
+      return betId;
+    } catch (error: unknown) {
+      return rejectWithValue(extractError(error, "Erro ao excluir desafio"));
+    }
+  }
+);
+
 const betSlice = createSlice({
   name: "bets",
   initialState,
