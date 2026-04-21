@@ -755,16 +755,7 @@ export default function CreateBetPage() {
                 campeonato.
               </p>
             </button>
-            <button
-              type="button"
-              className={`sport-template-card ${
-                sportKind === "tennis" ? "sport-template-card-active" : ""
-              }`}
-              onClick={() => pickSportKind("tennis")}
-            >
-              <h4>Tênis</h4>
-              <p>Aposte no vencedor de partidas ATP ou WTA.</p>
-            </button>
+            {/* Tennis hidden until a real match-data provider is wired. */}
           </div>
         </div>
       )}
