@@ -1,4 +1,4 @@
-import { useState, useEffect, FormEvent } from "react";
+import { useState, useEffect, useRef, FormEvent } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/useTheme";
@@ -25,14 +25,20 @@ export default function RegisterPage() {
   const [searchParams] = useSearchParams();
   const redirectTo = searchParams.get("redirect") || "/wallet";
 
+  const hasRedirected = useRef(false);
+  const redirectRef = useRef(redirectTo);
+  redirectRef.current = redirectTo;
+
   useEffect(() => {
-    if (isAuthenticated) {
-      navigate(redirectTo, { replace: true });
+    if (isAuthenticated && !hasRedirected.current) {
+      hasRedirected.current = true;
+      navigate(redirectRef.current, { replace: true });
     }
-  }, [isAuthenticated, navigate, redirectTo]);
+  }, [isAuthenticated, navigate]);
 
   useEffect(() => {
     resetError();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const validate = (): boolean => {

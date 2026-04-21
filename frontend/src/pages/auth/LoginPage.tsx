@@ -1,4 +1,4 @@
-import { useState, useEffect, FormEvent } from "react";
+import { useState, useEffect, useRef, FormEvent } from "react";
 import { useNavigate, Link, useLocation, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/useTheme";
@@ -15,18 +15,32 @@ export default function LoginPage() {
   const location = useLocation();
   const [searchParams] = useSearchParams();
 
+  // One-shot guard so StrictMode double-mount + React re-renders can't
+  // chain multiple navigate() calls for the same auth transition.
+  const hasRedirected = useRef(false);
+
+  // Read these through refs so the redirect effect doesn't re-fire every
+  // time user data is refreshed from /users/me.
   const explicitFrom = (location.state as { from?: string })?.from;
   const redirectQuery = searchParams.get("redirect");
+  const destinationRef = useRef<string>("/");
+  destinationRef.current =
+    redirectQuery || explicitFrom || (user?.is_admin ? "/admin" : "/");
 
+  // Only depend on the boolean. `user` can update independently (fetchMe
+  // fires after login) but the destination is always captured via ref.
   useEffect(() => {
-    if (isAuthenticated) {
-      const destination = redirectQuery || explicitFrom || (user?.is_admin ? "/admin" : "/");
-      navigate(destination, { replace: true });
+    if (isAuthenticated && !hasRedirected.current) {
+      hasRedirected.current = true;
+      navigate(destinationRef.current, { replace: true });
     }
-  }, [isAuthenticated, user, navigate, explicitFrom, redirectQuery]);
+  }, [isAuthenticated, navigate]);
 
   useEffect(() => {
     resetError();
+    // `resetError` from useAuth is a fresh closure each render; we only
+    // want this to clear once on mount, so intentionally omit it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSubmit = async (e: FormEvent) => {
