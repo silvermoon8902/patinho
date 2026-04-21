@@ -20,6 +20,9 @@ import AdminDashboardPage from "@/pages/admin/AdminDashboardPage";
 import AdminUsersPage from "@/pages/admin/AdminUsersPage";
 import AdminBetsPage from "@/pages/admin/AdminBetsPage";
 import AdminFeePage from "@/pages/admin/AdminFeePage";
+import TermsPage from "@/pages/legal/TermsPage";
+import PrivacyPage from "@/pages/legal/PrivacyPage";
+import LgpdPage from "@/pages/legal/LgpdPage";
 import { useAuth } from "@/hooks/useAuth";
 
 function AdminRoute({ children }: { children: React.ReactNode }) {
@@ -51,6 +54,9 @@ export default function App() {
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
         <Route path="/invite/:inviteToken" element={<InvitePage />} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/lgpd" element={<LgpdPage />} />
         <Route
           element={
             <ProtectedRoute>

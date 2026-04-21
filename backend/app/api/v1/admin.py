@@ -25,6 +25,10 @@ class UpdateFeeRequest(BaseModel):
     fee_value: float
 
 
+class TestEmailRequest(BaseModel):
+    to: str | None = None
+
+
 @router.get("/dashboard")
 async def dashboard(
     admin: User = Depends(get_admin_user),
@@ -142,3 +146,66 @@ async def update_fee_config(
 ):
     config = await admin_service.update_fee_config(db, body.fee_type, body.fee_value)
     return {"key": config.key, "value": config.value}
+
+
+@router.post("/test-email")
+async def send_test_email(
+    body: TestEmailRequest,
+    admin: User = Depends(get_admin_user),
+):
+    """
+    Send a canary email so the admin can verify SMTP config without creating
+    a fake account or triggering the password-reset flow. Sends to the
+    admin's own email unless `to` is provided.
+    """
+    from app.config import settings
+    from app.services import email_service
+
+    target = body.to or admin.email
+    configured = bool(settings.SMTP_HOST)
+    if not configured:
+        return {
+            "configured": False,
+            "sent": False,
+            "detail": (
+                "SMTP_HOST não está configurado. Defina as variáveis "
+                "SMTP_HOST, SMTP_PORT, SMTP_USERNAME, SMTP_PASSWORD, "
+                "SMTP_FROM_EMAIL no ambiente do backend e reinicie."
+            ),
+        }
+    html = (
+        "<p>Este é um e-mail de teste do Patinho.</p>"
+        f"<p>Enviado por: {admin.email}</p>"
+        f"<p>Servidor: {settings.SMTP_HOST}:{settings.SMTP_PORT}</p>"
+    )
+    text = (
+        "Este é um e-mail de teste do Patinho.\n"
+        f"Enviado por: {admin.email}\n"
+        f"Servidor: {settings.SMTP_HOST}:{settings.SMTP_PORT}"
+    )
+    sent = await email_service.send_email(
+        to=target,
+        subject="Patinho — teste de SMTP",
+        html=html,
+        text=text,
+    )
+    return {
+        "configured": True,
+        "sent": sent,
+        "to": target,
+        "host": settings.SMTP_HOST,
+        "detail": (
+            "E-mail enviado com sucesso." if sent
+            else "Envio falhou. Verifique os logs do backend para o erro SMTP."
+        ),
+    }
+
+
+@router.get("/payments/mode")
+async def payment_mode(admin: User = Depends(get_admin_user)):
+    """Report whether Mercado Pago is on TEST or LIVE credentials."""
+    from app.config import settings
+
+    tok = settings.MERCADO_PAGO_ACCESS_TOKEN or ""
+    mode = "test" if tok.startswith("TEST-") else ("live" if tok else "unconfigured")
+    return {"mode": mode, "configured": bool(tok)}

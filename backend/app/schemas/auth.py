@@ -10,6 +10,14 @@ class UserRegister(BaseModel):
     phone: str = Field(min_length=8, max_length=20)
     birth_date: date
     cpf: str | None = Field(default=None, max_length=14)
+    accepted_terms: bool = Field(
+        default=False,
+        description="Must be true — user has read and accepted ToS + Privacy Policy",
+    )
+    age_acknowledged: bool = Field(
+        default=False,
+        description="Must be true — user confirms they are 18 years or older",
+    )
 
     @field_validator("birth_date")
     @classmethod
@@ -18,6 +26,24 @@ class UserRegister(BaseModel):
         age = today.year - v.year - ((today.month, today.day) < (v.month, v.day))
         if age < 18:
             raise ValueError("Voce precisa ter pelo menos 18 anos para se cadastrar")
+        return v
+
+    @field_validator("accepted_terms")
+    @classmethod
+    def require_terms(cls, v: bool) -> bool:
+        if not v:
+            raise ValueError(
+                "Você precisa aceitar os Termos de Uso e a Política de Privacidade"
+            )
+        return v
+
+    @field_validator("age_acknowledged")
+    @classmethod
+    def require_age_ack(cls, v: bool) -> bool:
+        if not v:
+            raise ValueError(
+                "Você precisa confirmar que tem 18 anos ou mais"
+            )
         return v
 
 

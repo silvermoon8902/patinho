@@ -1,19 +1,46 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link } from "react-router-dom";
 import type { RootState, AppDispatch } from "@/store";
+import apiClient from "@/api/client";
+import { useToast } from "@/components/shared/Toast";
 import { fetchDashboardStats } from "@/store/adminSlice";
 import { formatCurrency } from "@/utils/format";
 
 export default function AdminDashboardPage() {
   const dispatch = useDispatch<AppDispatch>();
+  const { showToast } = useToast();
   const { stats, loading, error } = useSelector(
     (state: RootState) => state.admin
   );
+  const [testingEmail, setTestingEmail] = useState(false);
 
   useEffect(() => {
     dispatch(fetchDashboardStats());
   }, [dispatch]);
+
+  const handleTestEmail = async () => {
+    setTestingEmail(true);
+    try {
+      const res = await apiClient.post("/admin/test-email", {});
+      const d = res.data as {
+        configured: boolean;
+        sent: boolean;
+        detail: string;
+        to?: string;
+      };
+      if (d.sent) {
+        showToast(`E-mail enviado para ${d.to}`, "success");
+      } else {
+        showToast(d.detail || "Envio não realizado", "info");
+      }
+    } catch (err) {
+      const e = err as { response?: { data?: { detail?: string } } };
+      showToast(e.response?.data?.detail || "Erro", "error");
+    } finally {
+      setTestingEmail(false);
+    }
+  };
 
   return (
     <div className="admin-page">
@@ -74,6 +101,18 @@ export default function AdminDashboardPage() {
             </span>
           </Link>
         </div>
+      </div>
+
+      <div className="admin-quick-links">
+        <h2>Diagnóstico</h2>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={handleTestEmail}
+          disabled={testingEmail}
+        >
+          {testingEmail ? "Enviando..." : "Enviar e-mail de teste (SMTP)"}
+        </button>
       </div>
     </div>
   );

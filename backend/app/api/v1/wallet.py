@@ -24,6 +24,21 @@ async def get_wallet(
     return await wallet_service.get_wallet(db, user.id)
 
 
+@router.get("/payment-mode")
+async def get_payment_mode(user: User = Depends(get_current_active_user)):
+    """Tell the client whether the deposit flow is running on TEST Pix credentials."""
+    from app.config import settings
+
+    tok = settings.MERCADO_PAGO_ACCESS_TOKEN or ""
+    if tok.startswith("TEST-"):
+        mode = "test"
+    elif tok:
+        mode = "live"
+    else:
+        mode = "unconfigured"
+    return {"mode": mode}
+
+
 @router.post("/deposit", response_model=PaymentResponse)
 async def create_deposit(
     body: DepositRequest,

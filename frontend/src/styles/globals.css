@@ -452,6 +452,89 @@ input::placeholder {
   padding-bottom: 80px;
 }
 
+/* ===== App footer (legal + help links) ===== */
+.app-footer {
+  margin-top: 32px;
+  padding: 16px 0 8px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.72rem;
+  color: var(--color-gray-400, #6b7280);
+}
+.app-footer a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.app-footer a:hover {
+  color: var(--color-navy, #001F3F);
+}
+
+/* ===== Legal page placeholder ===== */
+.legal-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.legal-placeholder p,
+.legal-placeholder ul {
+  color: var(--color-gray-700, #374151);
+  line-height: 1.55;
+}
+.legal-placeholder ul {
+  padding-left: 20px;
+}
+.legal-placeholder li {
+  margin-bottom: 8px;
+}
+
+/* ===== Checkbox form groups (register consent + profile caps) ===== */
+.form-checkbox-group {
+  margin-top: 12px;
+}
+.form-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--color-gray-700, #374151);
+  line-height: 1.4;
+}
+.form-checkbox input[type="checkbox"] {
+  margin-top: 2px;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.form-checkbox a {
+  color: var(--color-navy, #001F3F);
+  text-decoration: underline;
+}
+
+/* ===== Mercado Pago test-mode badge ===== */
+.payment-mode-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #fff3cd;
+  color: #664d03;
+  border: 1px solid #ffecb5;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+.payment-mode-badge::before {
+  content: "⚠";
+  font-size: 0.9rem;
+}
+
 /* ===== Bottom Navigation ===== */
 .bottom-nav {
   position: fixed;

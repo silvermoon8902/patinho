@@ -32,3 +32,26 @@ services:
       - media_files:/media:ro
       - ./certbot/conf:/etc/letsencrypt:ro
       - ./certbot/www:/var/www/certbot:ro
+
+  # Certbot renewal daemon. Disabled by default — enable once a real domain
+  # is pointed at the VPS and the initial cert has been issued. See
+  # nginx/conf.d/ssl.conf.example for the activation steps.
+  #
+  # One-time cert issuance:
+  #   docker run --rm \
+  #     -v "$(pwd)/certbot/conf:/etc/letsencrypt" \
+  #     -v "$(pwd)/certbot/www:/var/www/certbot" \
+  #     certbot/certbot certonly --webroot -w /var/www/certbot \
+  #     -d patinho.example.com --email admin@patinho.example.com \
+  #     --agree-tos --no-eff-email
+  #
+  # certbot:
+  #   image: certbot/certbot:latest
+  #   restart: unless-stopped
+  #   volumes:
+  #     - ./certbot/conf:/etc/letsencrypt
+  #     - ./certbot/www:/var/www/certbot
+  #   entrypoint: >
+  #     /bin/sh -c 'trap exit TERM;
+  #     while :; do certbot renew --webroot -w /var/www/certbot --quiet;
+  #     sleep 12h & wait $${!}; done;'

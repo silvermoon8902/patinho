@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     SMTP_FROM_NAME: str = "Patinho"
     SMTP_USE_TLS: bool = True
     APP_URL: str = "http://localhost:5173"
+    TERMS_VERSION: str = "v1"
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 

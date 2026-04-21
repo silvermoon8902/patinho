@@ -14,6 +14,8 @@ export default function RegisterPage() {
   const [birthDay, setBirthDay] = useState("");
   const [birthMonth, setBirthMonth] = useState("");
   const [birthYear, setBirthYear] = useState("");
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [ageAcknowledged, setAgeAcknowledged] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
 
   const { register, isAuthenticated, loading, error, resetError } = useAuth();
@@ -78,6 +80,18 @@ export default function RegisterPage() {
       return false;
     }
 
+    if (!ageAcknowledged) {
+      setValidationError("Você precisa confirmar que tem 18 anos ou mais");
+      return false;
+    }
+
+    if (!acceptedTerms) {
+      setValidationError(
+        "Você precisa aceitar os Termos de Uso e a Política de Privacidade"
+      );
+      return false;
+    }
+
     return true;
   };
 
@@ -91,6 +105,8 @@ export default function RegisterPage() {
       password,
       phone: phone.trim(),
       birth_date: `${birthYear}-${birthMonth.padStart(2, "0")}-${birthDay.padStart(2, "0")}`,
+      accepted_terms: acceptedTerms,
+      age_acknowledged: ageAcknowledged,
     });
   };
 
@@ -213,6 +229,38 @@ export default function RegisterPage() {
               required
               autoComplete="new-password"
             />
+          </div>
+
+          <div className="form-group form-checkbox-group">
+            <label className="form-checkbox">
+              <input
+                type="checkbox"
+                checked={ageAcknowledged}
+                onChange={(e) => setAgeAcknowledged(e.target.checked)}
+              />
+              <span>Confirmo que tenho 18 anos ou mais.</span>
+            </label>
+          </div>
+
+          <div className="form-group form-checkbox-group">
+            <label className="form-checkbox">
+              <input
+                type="checkbox"
+                checked={acceptedTerms}
+                onChange={(e) => setAcceptedTerms(e.target.checked)}
+              />
+              <span>
+                Li e aceito os{" "}
+                <a href="/terms" target="_blank" rel="noopener noreferrer">
+                  Termos de Uso
+                </a>{" "}
+                e a{" "}
+                <a href="/privacy" target="_blank" rel="noopener noreferrer">
+                  Política de Privacidade
+                </a>
+                .
+              </span>
+            </label>
           </div>
 
           <button

@@ -1,6 +1,7 @@
 import { useState, useEffect, FormEvent } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import type { RootState, AppDispatch } from "@/store";
+import apiClient from "@/api/client";
 import {
   fetchWallet,
   createDeposit,
@@ -40,10 +41,15 @@ export default function WalletPage() {
 
   const [depositAmount, setDepositAmount] = useState("");
   const [copied, setCopied] = useState(false);
+  const [paymentMode, setPaymentMode] = useState<string | null>(null);
 
   useEffect(() => {
     dispatch(fetchWallet());
     dispatch(fetchTransactions(1));
+    apiClient
+      .get("/wallet/payment-mode")
+      .then((r) => setPaymentMode(r.data?.mode || null))
+      .catch(() => setPaymentMode(null));
   }, [dispatch]);
 
   const handleDeposit = (e: FormEvent) => {
@@ -93,6 +99,16 @@ export default function WalletPage() {
       {/* Deposit section */}
       <div className="card">
         <h3>Depositar</h3>
+        {paymentMode === "test" && (
+          <div className="payment-mode-badge">
+            Modo de teste — nenhuma transação real ocorre
+          </div>
+        )}
+        {paymentMode === "unconfigured" && (
+          <div className="payment-mode-badge">
+            Pagamentos ainda não configurados — depósitos indisponíveis
+          </div>
+        )}
         {!depositPayment ? (
           <form className="deposit-form" onSubmit={handleDeposit}>
             <div className="form-group">

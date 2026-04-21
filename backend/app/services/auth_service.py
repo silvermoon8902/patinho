@@ -41,12 +41,20 @@ async def register_user(db: AsyncSession, user_data: UserRegister) -> User:
             detail="Username already taken",
         )
 
+    from datetime import datetime, timezone as _tz
+
+    from app.config import settings
+
+    now = datetime.now(_tz.utc)
     user = User(
         email=user_data.email,
         username=user_data.username,
         hashed_password=hash_password(user_data.password),
         phone=user_data.phone,
         birth_date=user_data.birth_date,
+        accepted_terms_at=now,
+        terms_version=getattr(settings, "TERMS_VERSION", "v1"),
+        age_acknowledged_at=now,
     )
     db.add(user)
     await db.flush()

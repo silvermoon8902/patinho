@@ -60,6 +60,21 @@ export default function Layout() {
 
       <main className="main-content">
         <Outlet />
+        <footer className="app-footer">
+          <a href="/terms">Termos</a>
+          <span aria-hidden="true">·</span>
+          <a href="/privacy">Privacidade</a>
+          <span aria-hidden="true">·</span>
+          <a href="/lgpd">LGPD</a>
+          <span aria-hidden="true">·</span>
+          <a
+            href="https://www.jogadoresanonimos.com.br/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Jogo responsável
+          </a>
+        </footer>
       </main>
 
       <nav className="bottom-nav">
