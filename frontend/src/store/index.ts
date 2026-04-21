@@ -6,6 +6,7 @@ import chatReducer from "./chatSlice";
 import rankingReducer from "./rankingSlice";
 import adminReducer from "./adminSlice";
 import sportsReducer from "./sportsSlice";
+import leaguesReducer from "./leaguesSlice";
 
 export const store = configureStore({
   reducer: {
@@ -16,6 +17,7 @@ export const store = configureStore({
     ranking: rankingReducer,
     admin: adminReducer,
     sports: sportsReducer,
+    leagues: leaguesReducer,
   },
 });
 

@@ -11,6 +11,8 @@ import WalletPage from "@/pages/wallet/WalletPage";
 import BetsListPage from "@/pages/bets/BetsListPage";
 import CreateBetPage from "@/pages/bets/CreateBetPage";
 import BetDetailPage from "@/pages/bets/BetDetailPage";
+import LeaguesListPage from "@/pages/leagues/LeaguesListPage";
+import LeagueDetailPage from "@/pages/leagues/LeagueDetailPage";
 import InvitePage from "@/pages/invite/InvitePage";
 import RankingPage from "@/pages/ranking/RankingPage";
 import ProfilePage from "@/pages/profile/ProfilePage";
@@ -60,6 +62,8 @@ export default function App() {
           <Route path="/bets" element={<BetsListPage />} />
           <Route path="/bets/create" element={<CreateBetPage />} />
           <Route path="/bets/:betId" element={<BetDetailPage />} />
+          <Route path="/leagues" element={<LeaguesListPage />} />
+          <Route path="/leagues/:leagueId" element={<LeagueDetailPage />} />
           <Route path="/wallet" element={<WalletPage />} />
           <Route path="/ranking" element={<RankingPage />} />
           <Route path="/profile" element={<ProfilePage />} />

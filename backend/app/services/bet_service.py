@@ -10,6 +10,7 @@ from sqlalchemy.orm import selectinload
 
 from app.models.bet import Bet, BetStatus, ResolutionType
 from app.models.bet_option import BetOption
+from app.models.league_membership import LeagueMembership
 from app.models.participation import Participation
 from app.schemas.bet import BetCreate, BetJoin
 from app.services import wallet_service
@@ -17,6 +18,25 @@ from app.services import wallet_service
 # Draw label used for football match_winner template. Kept as a module-level
 # constant so resolve_sports_bet can match it against the fixture result.
 DRAW_LABEL = "Empate"
+
+
+async def _ensure_member_of_league(
+    db: AsyncSession, user_id: UUID, league_id: UUID | None
+) -> None:
+    """Validate that user is a member of the target league (if provided)."""
+    if league_id is None:
+        return
+    result = await db.execute(
+        select(LeagueMembership).where(
+            LeagueMembership.league_id == league_id,
+            LeagueMembership.user_id == user_id,
+        )
+    )
+    if result.scalar_one_or_none() is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Você não é membro desta liga",
+        )
 
 
 async def create_bet(db: AsyncSession, user_id: UUID, data: BetCreate) -> Bet:
@@ -39,6 +59,8 @@ async def create_bet(db: AsyncSession, user_id: UUID, data: BetCreate) -> Bet:
             detail="closes_at must be in the future",
         )
 
+    await _ensure_member_of_league(db, user_id, data.league_id)
+
     invite_token = secrets.token_urlsafe(16)
 
     bet = Bet(
@@ -52,6 +74,7 @@ async def create_bet(db: AsyncSession, user_id: UUID, data: BetCreate) -> Bet:
         entry_amount=data.entry_amount,
         max_participants=data.max_participants,
         sports_match_id=data.sports_match_id,
+        league_id=data.league_id,
         closes_at=closes_at,
     )
     db.add(bet)
@@ -77,6 +100,7 @@ async def create_sport_bet(
     race_data: dict | None = None,
     driver_names: list[str] | None = None,
     tennis_data: dict | None = None,
+    league_id: UUID | None = None,
 ) -> Bet:
     """
     Create a sport bet wired to an external API event.
@@ -96,6 +120,8 @@ async def create_sport_bet(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Maximum of 10 active bets reached",
         )
+
+    await _ensure_member_of_league(db, user_id, league_id)
 
     title: str
     options: list[str]
@@ -249,6 +275,7 @@ async def create_sport_bet(
         max_participants=max_participants,
         sports_match_id=sports_match_id,
         template=template,
+        league_id=league_id,
         closes_at=closes_at,
     )
     db.add(bet)
@@ -431,8 +458,18 @@ async def get_user_bets(
     status_filter: str | None = None,
     skip: int = 0,
     limit: int = 20,
+    league_id: UUID | None = None,
 ) -> list[Bet]:
-    """List bets where user is creator or participant."""
+    """
+    List bets where user is creator or participant.
+
+    If league_id is provided, restrict to bets scoped to that league AND
+    require the caller to be a member of that league (403 otherwise).
+    """
+    # When filtering by league, the caller must be a member.
+    if league_id is not None:
+        await _ensure_member_of_league(db, user_id, league_id)
+
     # Get bet IDs where user participates
     participation_subq = (
         select(Participation.bet_id)
@@ -440,11 +477,17 @@ async def get_user_bets(
         .subquery()
     )
 
+    if league_id is not None:
+        # All league members can see every bet in that league.
+        base_where = Bet.league_id == league_id
+    else:
+        base_where = (Bet.creator_id == user_id) | (
+            Bet.id.in_(select(participation_subq))
+        )
+
     query = (
         select(Bet)
-        .where(
-            (Bet.creator_id == user_id) | (Bet.id.in_(select(participation_subq)))
-        )
+        .where(base_where)
         .options(
             selectinload(Bet.options),
             selectinload(Bet.participations),

@@ -65,6 +65,7 @@ def _build_bet_response(bet) -> dict:
         "declared_winner_option_id": bet.declared_winner_option_id,
         "declared_at": bet.declared_at,
         "confirmation_closes_at": bet.confirmation_closes_at,
+        "league_id": bet.league_id,
         "options": [
             BetOptionResponse.model_validate(opt) for opt in bet.options
         ],
@@ -182,6 +183,7 @@ async def create_sport_bet(
                 "kickoff_at": kickoff_at,
                 "league_name": league.get("name"),
             },
+            league_id=data.league_id,
         )
         return _build_bet_response(bet)
 
@@ -239,6 +241,7 @@ async def create_sport_bet(
                 "competition_name": competition.get("name") or "",
             },
             driver_names=data.driver_names,
+            league_id=data.league_id,
         )
         return _build_bet_response(bet)
 
@@ -297,6 +300,7 @@ async def create_sport_bet(
                 "player1_name": p1,
                 "player2_name": p2,
             },
+            league_id=data.league_id,
         )
         return _build_bet_response(bet)
 
@@ -311,10 +315,13 @@ async def list_user_bets(
     status: str | None = Query(default=None),
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
+    league_id: UUID | None = Query(default=None),
     user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
 ):
-    bets = await bet_service.get_user_bets(db, user.id, status, skip, limit)
+    bets = await bet_service.get_user_bets(
+        db, user.id, status, skip, limit, league_id=league_id
+    )
     return [_build_bet_response(b) for b in bets]
 
 

@@ -6,7 +6,14 @@ import ThemeToggle from "./ThemeToggle";
 import patinhoLogo from "@/assets/patinho-logo.png";
 import patinhoLogoWhite from "@/assets/patinho-logo-white.png";
 
-const TOP_LEVEL_PATHS = new Set(["/", "/bets", "/wallet", "/ranking", "/profile"]);
+const TOP_LEVEL_PATHS = new Set([
+  "/",
+  "/bets",
+  "/wallet",
+  "/ranking",
+  "/profile",
+  "/leagues",
+]);
 
 export default function Layout() {
   const navigate = useNavigate();

@@ -3259,3 +3259,297 @@ html[data-theme="dark"] .alert-info {
   flex-direction: column;
   gap: 6px;
 }
+
+/* =========================================================================
+   Private Leagues
+   ========================================================================= */
+
+.leagues-list-page,
+.league-detail-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.league-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.leagues-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.league-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  text-decoration: none;
+  color: var(--color-text);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.league-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0, 31, 63, 0.08);
+}
+
+.league-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.league-card-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--color-text);
+}
+
+.league-card-count {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.league-card-desc {
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.league-card-footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-border);
+  font-size: 0.85rem;
+}
+
+.league-card-code-label {
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+}
+
+.league-invite-code {
+  font-family: "Courier New", Courier, monospace;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  background-color: var(--color-surface-alt);
+  color: var(--color-text);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm, 6px);
+  font-size: 0.9rem;
+}
+
+.league-code-input {
+  font-family: "Courier New", Courier, monospace;
+  letter-spacing: 0.02em;
+  text-align: center;
+}
+
+/* Detail header */
+
+.league-detail-header {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.league-back-link {
+  display: inline-block;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  margin-bottom: 6px;
+}
+
+.league-detail-desc {
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+  margin-top: 4px;
+}
+
+.league-detail-code {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  background-color: var(--color-surface-alt);
+  border-radius: var(--radius-sm, 6px);
+  border: 1px solid var(--color-border);
+}
+
+.league-invite-code-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-copy-code {
+  padding: 6px 12px;
+  font-size: 0.8rem;
+}
+
+.league-tabs {
+  margin-top: 4px;
+}
+
+/* Members list */
+
+.league-members-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.league-member-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+}
+
+.league-member-name {
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.league-owner-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  background-color: var(--color-navy);
+  color: var(--color-white);
+  border-radius: var(--radius-sm, 6px);
+}
+
+/* Ranking */
+
+.league-ranking-list .card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.league-ranking-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.league-ranking-table th,
+.league-ranking-table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.league-ranking-table th {
+  background-color: var(--color-surface-alt);
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.league-ranking-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* Detail actions */
+
+.league-detail-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border);
+}
+
+/* Modals */
+
+.league-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 31, 63, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+
+.league-modal-card {
+  width: 100%;
+  max-width: 420px;
+  padding: 24px;
+}
+
+.league-modal-card h2 {
+  font-size: 1.15rem;
+  margin-bottom: 4px;
+}
+
+.league-modal-subtitle {
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  margin-bottom: 20px;
+}
+
+.league-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.league-modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* Responsive */
+
+@media (min-width: 600px) {
+  .leagues-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .league-detail-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+
+  .league-detail-code {
+    min-width: 240px;
+  }
+
+  .league-detail-actions {
+    flex-direction: row;
+    justify-content: flex-end;
+  }
+
+  .league-modal-actions {
+    flex-direction: row;
+    justify-content: flex-end;
+  }
+}
+
+@media (min-width: 960px) {
+  .leagues-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

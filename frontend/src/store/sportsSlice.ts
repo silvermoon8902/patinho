@@ -216,6 +216,7 @@ export interface CreateSportBetPayload {
   driver_names?: string[] | null;
   entry_amount: number;
   max_participants: number;
+  league_id?: string | null;
 }
 
 export const createSportBet = createAsyncThunk(

@@ -7,6 +7,8 @@ from app.models.bet_option import BetOption
 from app.models.participation import Participation
 from app.models.contestation import Contestation
 from app.models.password_reset_token import PasswordResetToken
+from app.models.league import League
+from app.models.league_membership import LeagueMembership
 
 __all__ = [
     "User",
@@ -22,4 +24,6 @@ __all__ = [
     "Participation",
     "Contestation",
     "PasswordResetToken",
+    "League",
+    "LeagueMembership",
 ]

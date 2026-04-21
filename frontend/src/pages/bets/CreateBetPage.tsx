@@ -15,6 +15,7 @@ import {
   fetchRaces,
   fetchTennisMatches,
 } from "@/store/sportsSlice";
+import { fetchMyLeagues } from "@/store/leaguesSlice";
 
 const CATEGORIES = [
   { value: "football", label: "Futebol" },
@@ -108,6 +109,7 @@ export default function CreateBetPage() {
   const { loading: customLoading, error: customError } = useSelector(
     (state: RootState) => state.bets
   );
+  const { myLeagues } = useSelector((state: RootState) => state.leagues);
   const {
     leagues,
     leaguesLoading,
@@ -165,6 +167,9 @@ export default function CreateBetPage() {
   const [sportMaxParticipantsText, setSportMaxParticipantsText] =
     useState("100");
 
+  // Optional private league scope for the new bet (applies to both flows)
+  const [privateLeagueId, setPrivateLeagueId] = useState<string>("");
+
   // Tennis-specific state
   const [selectedTennisTour, setSelectedTennisTour] =
     useState<TennisTour>("ATP");
@@ -190,6 +195,13 @@ export default function CreateBetPage() {
   );
   const selectedTemplateData =
     availableTemplates.find((t) => t.id === selectedTemplate) || null;
+
+  // Load user's private leagues once the wizard starts (for optional scoping)
+  useEffect(() => {
+    if (flow !== "none" && myLeagues.length === 0) {
+      dispatch(fetchMyLeagues());
+    }
+  }, [flow, myLeagues.length, dispatch]);
 
   // Fetch leagues when user enters the sport flow with football.
   useEffect(() => {
@@ -506,6 +518,7 @@ export default function CreateBetPage() {
         entry_amount: entryAmount,
         max_participants: maxParticipants,
         closes_at: new Date(closesAt).toISOString(),
+        league_id: privateLeagueId || null,
       })
     );
 
@@ -523,6 +536,7 @@ export default function CreateBetPage() {
           fixture_id: selectedFixtureId,
           entry_amount: sportEntryAmount,
           max_participants: sportMaxParticipants,
+          league_id: privateLeagueId || null,
         })
       );
 
@@ -544,6 +558,7 @@ export default function CreateBetPage() {
           driver_names: driverNames,
           entry_amount: sportEntryAmount,
           max_participants: sportMaxParticipants,
+          league_id: privateLeagueId || null,
         })
       );
       if (createSportBet.fulfilled.match(result)) {
@@ -1001,6 +1016,25 @@ export default function CreateBetPage() {
               Entradas fecham automaticamente no horário do evento
             </span>
           </div>
+          <div className="form-group">
+            <label>Criar dentro de uma liga? (opcional)</label>
+            <select
+              className="form-select"
+              value={privateLeagueId}
+              onChange={(e) => setPrivateLeagueId(e.target.value)}
+            >
+              <option value="">Nenhuma (aberto a qualquer convidado)</option>
+              {myLeagues.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.name}
+                </option>
+              ))}
+            </select>
+            <span className="form-hint">
+              Se escolher uma liga, apenas os membros verão este desafio na
+              lista da liga
+            </span>
+          </div>
           {sportRulesError && (
             <div className="alert alert-error" style={{ marginTop: "8px" }}>
               {sportRulesError}
@@ -1221,6 +1255,25 @@ export default function CreateBetPage() {
             />
             <span className="form-hint">
               Após esta data, novas participações não são aceitas
+            </span>
+          </div>
+          <div className="form-group">
+            <label>Criar dentro de uma liga? (opcional)</label>
+            <select
+              className="form-select"
+              value={privateLeagueId}
+              onChange={(e) => setPrivateLeagueId(e.target.value)}
+            >
+              <option value="">Nenhuma (aberto a qualquer convidado)</option>
+              {myLeagues.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.name}
+                </option>
+              ))}
+            </select>
+            <span className="form-hint">
+              Se escolher uma liga, apenas os membros verão este desafio na
+              lista da liga
             </span>
           </div>
           {rulesError && (

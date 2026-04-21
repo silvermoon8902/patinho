@@ -45,6 +45,7 @@ export interface BetResponse {
   declared_winner_option_id?: string;
   declared_at?: string;
   confirmation_closes_at?: string;
+  league_id?: string | null;
 }
 
 interface CreateBetPayload {
@@ -56,6 +57,7 @@ interface CreateBetPayload {
   entry_amount: number;
   max_participants: number;
   closes_at: string;
+  league_id?: string | null;
 }
 
 interface JoinBetPayload {
@@ -98,9 +100,23 @@ const initialState: BetState = {
 
 export const fetchMyBets = createAsyncThunk(
   "bets/fetchMyBets",
-  async (status: string | undefined, { rejectWithValue }) => {
+  async (
+    args: string | { status?: string; leagueId?: string } | undefined,
+    { rejectWithValue }
+  ) => {
     try {
-      const params = status ? `?status=${status}` : "";
+      let status: string | undefined;
+      let leagueId: string | undefined;
+      if (typeof args === "string") {
+        status = args;
+      } else if (args) {
+        status = args.status;
+        leagueId = args.leagueId;
+      }
+      const query: string[] = [];
+      if (status) query.push(`status=${encodeURIComponent(status)}`);
+      if (leagueId) query.push(`league_id=${encodeURIComponent(leagueId)}`);
+      const params = query.length ? `?${query.join("&")}` : "";
       const response = await apiClient.get(`/bets${params}`);
       return response.data;
     } catch (error: unknown) {

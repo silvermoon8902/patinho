@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime
 from decimal import Decimal
 
@@ -90,3 +91,4 @@ class SportBetCreate(BaseModel):
     max_participants: int = Field(default=100, ge=2, le=100)
     # For f1_winner: optional subset of driver names to use as bet options
     driver_names: list[str] | None = None
+    league_id: uuid.UUID | None = None

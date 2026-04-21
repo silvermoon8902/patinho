@@ -55,6 +55,9 @@ class Bet(Base):
     declared_winner_option_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("bet_options.id")
     )
+    league_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("leagues.id"), nullable=True, index=True
+    )
     declared_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     confirmation_closes_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     closes_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
@@ -77,3 +80,4 @@ class Bet(Base):
     declared_winner_option: Mapped["BetOption | None"] = relationship(
         foreign_keys=[declared_winner_option_id], post_update=True
     )
+    league: Mapped["League | None"] = relationship(foreign_keys=[league_id])

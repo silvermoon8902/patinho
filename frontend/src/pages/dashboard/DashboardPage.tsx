@@ -47,6 +47,9 @@ export default function DashboardPage() {
           <Link to="/ranking" className="card action-card">
             <span className="action-label">Ver Ranking</span>
           </Link>
+          <Link to="/leagues" className="card action-card">
+            <span className="action-label">Ligas</span>
+          </Link>
         </div>
       </div>
     </div>

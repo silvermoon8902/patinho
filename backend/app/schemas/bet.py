@@ -15,6 +15,7 @@ class BetCreate(BaseModel):
     entry_amount: Decimal = Field(default=Decimal("5"), ge=5, le=1000)
     max_participants: int = Field(default=100, ge=2, le=1000)
     sports_match_id: str | None = None
+    league_id: uuid.UUID | None = None
 
     @field_validator("options")
     @classmethod
@@ -66,6 +67,7 @@ class BetResponse(BaseModel):
     declared_winner_option_id: uuid.UUID | None = None
     declared_at: datetime | None = None
     confirmation_closes_at: datetime | None = None
+    league_id: uuid.UUID | None = None
     options: list[BetOptionResponse]
     current_participants: int
 
