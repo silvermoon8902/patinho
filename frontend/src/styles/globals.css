@@ -1015,6 +1015,9 @@ html[data-theme="dark"] .legal-status-active {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
 }
 
 .welcome-section h1 {
@@ -1087,6 +1090,9 @@ html[data-theme="dark"] .legal-status-active {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
 }
 
 .balance-card {
@@ -1299,6 +1305,9 @@ html[data-theme="dark"] .legal-status-active {
   }
 
   .bottom-nav {
+    /* Override the mobile base rule where right:0 would constrain width. */
+    right: auto;
+    width: 100%;
     max-width: 1200px;
     left: 50%;
     transform: translateX(-50%);
@@ -1499,6 +1508,9 @@ html[data-theme="dark"] .legal-status-active {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
 }
 
 .bets-header {
@@ -1599,6 +1611,9 @@ html[data-theme="dark"] .legal-status-active {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
 }
 
 .create-bet-form {
@@ -2907,6 +2922,9 @@ html[data-theme="dark"] .legal-status-active {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
 }
 
 .profile-header {
@@ -3689,6 +3707,9 @@ html[data-theme="dark"] .alert-info {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
 }
 
 .league-header-actions {
