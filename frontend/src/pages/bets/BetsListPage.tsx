@@ -19,10 +19,31 @@ export default function BetsListPage() {
     (state: RootState) => state.bets
   );
   const [activeTab, setActiveTab] = useState<TabFilter>("active");
+  // Tracks whether the user has ANY bets (across all statuses). Computed
+  // from an unfiltered fetch on mount so the empty-state copy can
+  // distinguish "brand new user" from "nothing in this tab right now".
+  const [hasAnyBets, setHasAnyBets] = useState<boolean | null>(null);
 
   useEffect(() => {
     dispatch(fetchMyBets(TAB_STATUS_MAP[activeTab]));
   }, [dispatch, activeTab]);
+
+  useEffect(() => {
+    // One-shot: determine if the user has any bets in any state.
+    let cancelled = false;
+    dispatch(fetchMyBets(undefined)).then((result) => {
+      if (cancelled) return;
+      const payload = (result as { payload?: unknown }).payload;
+      if (Array.isArray(payload)) {
+        setHasAnyBets(payload.length > 0);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+    // Intentionally run only once on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleTabChange = (tab: TabFilter) => {
     setActiveTab(tab);
@@ -67,13 +88,31 @@ export default function BetsListPage() {
       {!loading && bets.length === 0 && (
         <div className="bets-empty card">
           <p className="bets-empty-text">
-            {activeTab === "active" && "Nenhum desafio ativo no momento"}
-            {activeTab === "resolved" && "Você ainda não tem desafios encerrados"}
-            {activeTab === "all" && "Você ainda não tem desafios"}
+            {hasAnyBets === false
+              ? "Você ainda não tem desafios"
+              : activeTab === "active"
+              ? "Nenhum desafio ativo no momento"
+              : activeTab === "resolved"
+              ? "Nenhum desafio encerrado ainda"
+              : "Você ainda não tem desafios"}
           </p>
-          {activeTab !== "resolved" && (
+          {hasAnyBets === false && activeTab !== "resolved" && (
             <Link to="/bets/create" className="btn btn-primary">
-              {activeTab === "all" ? "Criar seu primeiro desafio" : "Criar novo desafio"}
+              Criar seu primeiro desafio
+            </Link>
+          )}
+          {hasAnyBets && activeTab === "resolved" && (
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => setActiveTab("active")}
+            >
+              Ver desafios ativos
+            </button>
+          )}
+          {hasAnyBets && activeTab === "active" && (
+            <Link to="/bets/create" className="btn btn-primary">
+              Criar novo desafio
             </Link>
           )}
         </div>
