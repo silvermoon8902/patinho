@@ -538,10 +538,20 @@ html[data-theme="dark"] .app-footer-help:hover {
 }
 
 /* ===== Legal pages (Terms / Privacy / LGPD) ===== */
+/* Constrained to a readable column width on tablet/desktop; full width on mobile. */
 .legal-page {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 8px 0 24px;
+}
+@media (min-width: 1024px) {
+  .legal-page {
+    padding: 24px 0 40px;
+  }
 }
 
 /* Hero */
