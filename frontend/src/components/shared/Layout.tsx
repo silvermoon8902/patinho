@@ -61,19 +61,21 @@ export default function Layout() {
       <main className="main-content">
         <Outlet />
         <footer className="app-footer">
-          <a href="/terms">Termos</a>
-          <span aria-hidden="true">·</span>
-          <a href="/privacy">Privacidade</a>
-          <span aria-hidden="true">·</span>
-          <a href="/lgpd">LGPD</a>
-          <span aria-hidden="true">·</span>
+          <div className="app-footer-links">
+            <a href="/terms" className="app-footer-link">Termos</a>
+            <a href="/privacy" className="app-footer-link">Privacidade</a>
+            <a href="/lgpd" className="app-footer-link">LGPD</a>
+          </div>
           <a
             href="https://www.jogadoresanonimos.com.br/"
             target="_blank"
             rel="noopener noreferrer"
+            className="app-footer-help"
           >
+            <span aria-hidden="true" className="app-footer-help-icon">♥</span>
             Jogo responsável
           </a>
+          <p className="app-footer-brand">Patinho · Desafios entre amigos</p>
         </footer>
       </main>
 

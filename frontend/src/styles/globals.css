@@ -454,23 +454,87 @@ input::placeholder {
 
 /* ===== App footer (legal + help links) ===== */
 .app-footer {
-  margin-top: 32px;
-  padding: 16px 0 8px;
+  margin-top: 40px;
+  padding: 20px 16px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  border-top: 1px solid var(--color-gray-100, #f3f4f6);
+}
+.app-footer-links {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.72rem;
-  color: var(--color-gray-400, #6b7280);
+  gap: 6px;
 }
-.app-footer a {
-  color: inherit;
-  text-decoration: underline;
-  text-underline-offset: 2px;
+.app-footer-link {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-gray-500, #6b7280);
+  background: var(--color-gray-50, #f9fafb);
+  text-decoration: none;
+  transition: background 0.15s ease, color 0.15s ease;
 }
-.app-footer a:hover {
+.app-footer-link:hover,
+.app-footer-link:focus-visible {
+  background: var(--color-yellow, #FFD10D);
   color: var(--color-navy, #001F3F);
+  outline: none;
+}
+.app-footer-help {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-navy, #001F3F);
+  background: transparent;
+  border: 1px solid var(--color-gray-200, #e5e7eb);
+  text-decoration: none;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.app-footer-help:hover,
+.app-footer-help:focus-visible {
+  border-color: var(--color-navy, #001F3F);
+  background: var(--color-gray-50, #f9fafb);
+  outline: none;
+}
+.app-footer-help-icon {
+  color: #ef4444;
+  font-size: 0.85rem;
+  line-height: 1;
+}
+.app-footer-brand {
+  margin: 4px 0 0;
+  font-size: 0.68rem;
+  color: var(--color-gray-400, #9ca3af);
+  letter-spacing: 0.02em;
+}
+html[data-theme="dark"] .app-footer {
+  border-top-color: var(--color-border, #2a3544);
+}
+html[data-theme="dark"] .app-footer-link {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--color-gray-400, #9ca3af);
+}
+html[data-theme="dark"] .app-footer-link:hover,
+html[data-theme="dark"] .app-footer-link:focus-visible {
+  background: var(--color-yellow, #FFD10D);
+  color: var(--color-navy, #001F3F);
+}
+html[data-theme="dark"] .app-footer-help {
+  color: var(--color-white, #ffffff);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+html[data-theme="dark"] .app-footer-help:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--color-yellow, #FFD10D);
 }
 
 /* ===== Legal page placeholder ===== */
