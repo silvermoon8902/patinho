@@ -55,7 +55,9 @@ async def create_withdrawal(
     user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
 ):
-    return await wallet_service.process_withdrawal(db, user.id, body.amount)
+    return await wallet_service.process_withdrawal(
+        db, user.id, body.amount, body.pix_key
+    )
 
 
 @router.get("/transactions", response_model=list[WalletTransactionResponse])

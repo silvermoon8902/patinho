@@ -68,6 +68,7 @@ class BetResponse(BaseModel):
     declared_at: datetime | None = None
     confirmation_closes_at: datetime | None = None
     league_id: uuid.UUID | None = None
+    template: str | None = None
     options: list[BetOptionResponse]
     current_participants: int
 

@@ -69,7 +69,15 @@ All Docker services share `backend_net` (db/redis/backend/celery) and
 | `reset_weekly_ranking` | Mon 00:00 | Zero the weekly leaderboard |
 
 Some tasks (`purge_expired_accounts` for LGPD retention) are defined but
-not yet on the beat schedule — run them manually or add a crontab entry.
+not yet on the beat schedule — run them manually via:
+
+```
+docker compose exec backend python -c \
+  "from app.tasks.lgpd_tasks import purge_expired_accounts; print(purge_expired_accounts())"
+```
+
+or add a system cron on the VPS (weekly is recommended, since the
+retention window is multi-year and precision doesn't matter).
 
 ## Domain model (key tables)
 
@@ -119,7 +127,14 @@ platform_config (default fee type + value)
 
 Backend-side additions:
 - Per-email failed-login limiter: 8 failures in 5 min → 15 min lockout
-  (Redis-backed). Catches distributed brute force.
+  (Redis-backed; fails-open if Redis is unreachable so login isn't blocked
+  by an ops incident). Catches distributed brute force.
+- Deposit velocity: max 10 deposit attempts + R$ 5.000 total per user per
+  24h window.
+- Withdrawal: minimum R$ 20 + Pix key required. The actual outbound Pix
+  transfer via Mercado Pago is a Phase-2 item (needs production MP
+  credentials); today withdrawals are queued as `wallet_transactions` of
+  type=withdrawal and processed manually until that lands.
 
 ## Observability
 

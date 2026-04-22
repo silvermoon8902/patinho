@@ -9,6 +9,7 @@ import {
   type TournamentFixture,
 } from "@/store/tournamentSlice";
 import { useToast } from "@/components/shared/Toast";
+import EmptyState from "@/components/shared/EmptyState";
 
 const PHASE_LABEL: Record<string, string> = {
   group: "Fase de grupos",
@@ -32,6 +33,20 @@ function isLocked(locksAt: string): boolean {
   return new Date(locksAt).getTime() <= Date.now();
 }
 
+function formatCountdown(locksAt: string, nowMs: number): string {
+  const diff = new Date(locksAt).getTime() - nowMs;
+  if (diff <= 0) return "Encerrado";
+  const secs = Math.floor(diff / 1000);
+  const days = Math.floor(secs / 86400);
+  const hours = Math.floor((secs % 86400) / 3600);
+  const minutes = Math.floor((secs % 3600) / 60);
+  const seconds = secs % 60;
+  if (days > 0) return `Fecha em ${days}d ${hours}h`;
+  if (hours > 0) return `Fecha em ${hours}h ${minutes}min`;
+  if (minutes > 0) return `Fecha em ${minutes}min ${seconds}s`;
+  return `Fecha em ${seconds}s`;
+}
+
 export default function TournamentPalpitesPage() {
   const { betId } = useParams<{ betId: string }>();
   const dispatch = useDispatch<AppDispatch>();
@@ -45,6 +60,12 @@ export default function TournamentPalpitesPage() {
   >({});
   const [champion, setChampion] = useState("");
   const [savingChamp, setSavingChamp] = useState(false);
+  // Ticks once per second so countdown badges update live
+  const [nowMs, setNowMs] = useState(Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNowMs(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     if (betId) dispatch(fetchTournamentFixtures(betId));
@@ -194,11 +215,11 @@ export default function TournamentPalpitesPage() {
 
       {loading && <div className="bets-loading" aria-busy="true">Carregando partidas…</div>}
       {!loading && fixtures.length === 0 && (
-        <div className="bets-empty card">
-          <p className="bets-empty-text">
-            As partidas aparecerão aqui assim que o calendário for publicado.
-          </p>
-        </div>
+        <EmptyState
+          icon="bets"
+          title="Ainda sem partidas"
+          description="As partidas aparecerão aqui assim que o calendário for publicado."
+        />
       )}
 
       {!loading &&
@@ -230,6 +251,11 @@ export default function TournamentPalpitesPage() {
                         {f.my_palpite && f.my_palpite.points_earned > 0 && (
                           <span className="palpite-points">
                             +{f.my_palpite.points_earned} pts
+                          </span>
+                        )}
+                        {!locked && (
+                          <span className="palpite-countdown" aria-live="off">
+                            {formatCountdown(f.locks_at, nowMs)}
                           </span>
                         )}
                         {locked && (

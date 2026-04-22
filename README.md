@@ -81,6 +81,8 @@ Cobertura atual: **36 testes** (21 access-gate + 10 compliance + 15 tournament s
 - Cadastro e login com JWT, verificação de idade e aceite de termos/LGPD.
 - Carteira digital com Pix (Mercado Pago sandbox/produção via env).
 - Previsões esportivas (futebol, F1) com apuração automática via API-Sports.
+  Tênis está no roadmap mas aguarda definição de provedor real (a api-sports
+  não publica tênis). A UI esconde a opção hoje.
 - Desafios personalizados com resolução por votação (consenso 70% ou
   maioria simples em caso de turnout 100%).
 - Bolão da Copa do Mundo 2026 (template âncora): palpites em lote, palpite

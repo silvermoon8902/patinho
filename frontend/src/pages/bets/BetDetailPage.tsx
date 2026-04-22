@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch, RootState } from "@/store";
 import {
@@ -269,6 +269,33 @@ export default function BetDetailPage() {
           {getTimeRemaining(currentBet.closes_at)}
         </div>
       </div>
+
+      {/* Tournament-bet CTA: jump straight to palpite grid + ranking */}
+      {currentBet.template?.startsWith("bolao_") && (
+        <div className="card tournament-cta-card">
+          <div className="tournament-cta-text">
+            <strong>Bolão em andamento</strong>
+            <p>
+              Palpite nos jogos e acompanhe o ranking ao vivo. Não esqueça
+              do palpite do campeão — vale 30 pontos extras no final.
+            </p>
+          </div>
+          <div className="tournament-cta-actions">
+            <Link
+              to={`/bets/${currentBet.id}/palpites`}
+              className="btn btn-primary"
+            >
+              Fazer meus palpites
+            </Link>
+            <Link
+              to={`/bets/${currentBet.id}/ranking`}
+              className="btn btn-secondary"
+            >
+              Ver ranking
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* Share section */}
       <div className="share-section card">

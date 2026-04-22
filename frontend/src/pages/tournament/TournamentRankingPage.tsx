@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch, RootState } from "@/store";
 import { fetchTournamentRanking } from "@/store/tournamentSlice";
+import EmptyState from "@/components/shared/EmptyState";
 
 export default function TournamentRankingPage() {
   const { betId } = useParams<{ betId: string }>();
@@ -38,11 +39,11 @@ export default function TournamentRankingPage() {
       </header>
 
       {ranking.length === 0 ? (
-        <div className="bets-empty card">
-          <p className="bets-empty-text">
-            O ranking vai aparecer assim que as primeiras partidas forem apuradas.
-          </p>
-        </div>
+        <EmptyState
+          icon="ranking"
+          title="Ranking ainda vazio"
+          description="Assim que as primeiras partidas forem apuradas, a classificação aparece aqui."
+        />
       ) : (
         <section className="card">
           <ul className="ranking-list">

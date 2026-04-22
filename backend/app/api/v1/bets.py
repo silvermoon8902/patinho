@@ -71,6 +71,7 @@ def _build_bet_response(bet) -> dict:
         "declared_at": bet.declared_at,
         "confirmation_closes_at": bet.confirmation_closes_at,
         "league_id": bet.league_id,
+        "template": bet.template,
         "options": [
             BetOptionResponse.model_validate(opt) for opt in bet.options
         ],

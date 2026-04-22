@@ -137,10 +137,35 @@ async def credit_deposit(
     return tx
 
 
+MIN_WITHDRAWAL = Decimal("20")
+
+
 async def process_withdrawal(
-    db: AsyncSession, user_id: UUID, amount: Decimal
+    db: AsyncSession,
+    user_id: UUID,
+    amount: Decimal,
+    pix_key: str | None = None,
 ) -> WalletTransaction:
-    """Process a withdrawal from the user's wallet."""
+    """
+    Record a withdrawal request against the user's wallet.
+
+    Phase 1 (current): validate, debit the wallet, persist the request.
+    Phase 2 (needs MP production credentials): enqueue an outbound
+    `payments.pix_out` task that calls Mercado Pago's transfer API using
+    `pix_key`. Until that lands, payouts are processed manually from the
+    admin panel by checking `wallet_transactions` of type=withdrawal.
+    """
+    if amount < MIN_WITHDRAWAL:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Saque mínimo é de R$ {MIN_WITHDRAWAL:.2f}",
+        )
+    if not pix_key or len(pix_key.strip()) < 3:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Chave Pix obrigatória para o saque.",
+        )
+
     wallet = await _lock_wallet(db, user_id)
     balance_before = wallet.balance
 
@@ -158,7 +183,7 @@ async def process_withdrawal(
         amount=amount,
         balance_before=balance_before,
         balance_after=wallet.balance,
-        description="Withdrawal request",
+        description=f"Saque Pix solicitado — chave: {pix_key.strip()}",
     )
     db.add(tx)
     await db.flush()

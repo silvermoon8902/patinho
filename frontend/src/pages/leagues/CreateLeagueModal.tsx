@@ -71,7 +71,7 @@ export default function CreateLeagueModal({ open, onClose, onCreated }: Props) {
       >
         <h2>Criar nova liga</h2>
         <p className="league-modal-subtitle">
-          Reúna seus amigos em um grupo para apostar juntos.
+          Reúna seus amigos em um grupo para criar desafios e previsões juntos.
         </p>
 
         <form onSubmit={handleSubmit} className="league-form">

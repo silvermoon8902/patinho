@@ -46,6 +46,7 @@ export interface BetResponse {
   declared_at?: string;
   confirmation_closes_at?: string;
   league_id?: string | null;
+  template?: string | null;
 }
 
 interface CreateBetPayload {

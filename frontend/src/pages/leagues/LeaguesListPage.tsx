@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import EmptyState from "@/components/shared/EmptyState";
 import { Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch, RootState } from "@/store";
@@ -45,17 +46,27 @@ export default function LeaguesListPage() {
       )}
 
       {!loading && myLeagues.length === 0 && (
-        <div className="bets-empty card">
-          <p className="bets-empty-text">
-            Você ainda não faz parte de nenhuma liga
-          </p>
-          <button
-            className="btn btn-primary"
-            onClick={() => setCreateOpen(true)}
-          >
-            Criar sua primeira liga
-          </button>
-        </div>
+        <EmptyState
+          icon="leagues"
+          title="Você ainda não faz parte de nenhuma liga"
+          description="Crie uma liga para o grupo de amigos ou entre em uma existente com um código de convite."
+          action={
+            <>
+              <button
+                className="btn btn-primary"
+                onClick={() => setCreateOpen(true)}
+              >
+                Criar minha primeira liga
+              </button>
+              <button
+                className="btn btn-secondary"
+                onClick={() => setJoinOpen(true)}
+              >
+                Entrar com código
+              </button>
+            </>
+          }
+        />
       )}
 
       {myLeagues.length > 0 && (
