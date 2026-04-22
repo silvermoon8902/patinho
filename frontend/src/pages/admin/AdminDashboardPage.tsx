@@ -15,12 +15,21 @@ export default function AdminDashboardPage() {
   );
   const [testingEmail, setTestingEmail] = useState(false);
 
+  type EmailTestResult = {
+    status: "sent" | "unconfigured" | "failed";
+    detail: string;
+    to?: string;
+  };
+  const [emailTestResult, setEmailTestResult] =
+    useState<EmailTestResult | null>(null);
+
   useEffect(() => {
     dispatch(fetchDashboardStats());
   }, [dispatch]);
 
   const handleTestEmail = async () => {
     setTestingEmail(true);
+    setEmailTestResult(null);
     try {
       const res = await apiClient.post("/admin/test-email", {});
       const d = res.data as {
@@ -30,13 +39,19 @@ export default function AdminDashboardPage() {
         to?: string;
       };
       if (d.sent) {
+        setEmailTestResult({ status: "sent", detail: d.detail, to: d.to });
         showToast(`E-mail enviado para ${d.to}`, "success");
+      } else if (!d.configured) {
+        setEmailTestResult({ status: "unconfigured", detail: d.detail });
       } else {
-        showToast(d.detail || "Envio não realizado", "info");
+        setEmailTestResult({ status: "failed", detail: d.detail });
       }
     } catch (err) {
       const e = err as { response?: { data?: { detail?: string } } };
-      showToast(e.response?.data?.detail || "Erro", "error");
+      setEmailTestResult({
+        status: "failed",
+        detail: e.response?.data?.detail || "Erro ao contatar o servidor",
+      });
     } finally {
       setTestingEmail(false);
     }
@@ -105,14 +120,50 @@ export default function AdminDashboardPage() {
 
       <div className="admin-quick-links">
         <h2>Diagnóstico</h2>
-        <button
-          type="button"
-          className="btn btn-secondary"
-          onClick={handleTestEmail}
-          disabled={testingEmail}
-        >
-          {testingEmail ? "Enviando..." : "Enviar e-mail de teste (SMTP)"}
-        </button>
+        <div className="card admin-diag-card">
+          <div className="admin-diag-row">
+            <div className="admin-diag-info">
+              <h3>SMTP</h3>
+              <p>
+                Envia um e-mail de teste para a sua conta admin para validar a
+                configuração do servidor de e-mail.
+              </p>
+            </div>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={handleTestEmail}
+              disabled={testingEmail}
+            >
+              {testingEmail ? "Enviando..." : "Enviar e-mail de teste"}
+            </button>
+          </div>
+
+          {emailTestResult && (
+            <div
+              className={`admin-diag-result admin-diag-result-${emailTestResult.status}`}
+              role="status"
+            >
+              <div className="admin-diag-result-header">
+                <span className="admin-diag-result-icon" aria-hidden="true">
+                  {emailTestResult.status === "sent"
+                    ? "✓"
+                    : emailTestResult.status === "unconfigured"
+                    ? "i"
+                    : "!"}
+                </span>
+                <strong>
+                  {emailTestResult.status === "sent"
+                    ? `E-mail enviado para ${emailTestResult.to}`
+                    : emailTestResult.status === "unconfigured"
+                    ? "SMTP ainda não configurado"
+                    : "Falha no envio"}
+                </strong>
+              </div>
+              <p>{emailTestResult.detail}</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

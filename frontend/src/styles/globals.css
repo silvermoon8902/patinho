@@ -853,6 +853,118 @@ html[data-theme="dark"] .legal-status-active {
   text-decoration: underline;
 }
 
+/* ===== Admin diagnostic (SMTP test) ===== */
+.admin-diag-card {
+  padding: 20px;
+}
+.admin-diag-row {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: stretch;
+}
+@media (min-width: 640px) {
+  .admin-diag-row {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+.admin-diag-info h3 {
+  margin: 0 0 4px;
+  font-size: 1rem;
+  color: var(--color-navy, #001F3F);
+}
+.admin-diag-info p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-gray-600, #4b5563);
+  line-height: 1.45;
+}
+.admin-diag-row .btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.admin-diag-result {
+  margin-top: 16px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border-left: 4px solid;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.admin-diag-result p {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+.admin-diag-result-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+}
+.admin-diag-result-icon {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.78rem;
+}
+.admin-diag-result-sent {
+  background: #f0fdf4;
+  border-left-color: #16a34a;
+  color: #166534;
+}
+.admin-diag-result-sent .admin-diag-result-icon {
+  background: #16a34a;
+  color: #ffffff;
+}
+.admin-diag-result-unconfigured {
+  background: #fffbeb;
+  border-left-color: #f59e0b;
+  color: #92400e;
+}
+.admin-diag-result-unconfigured .admin-diag-result-icon {
+  background: #f59e0b;
+  color: #ffffff;
+  font-style: italic;
+  font-family: Georgia, serif;
+}
+.admin-diag-result-failed {
+  background: #fef2f2;
+  border-left-color: #dc2626;
+  color: #991b1b;
+}
+.admin-diag-result-failed .admin-diag-result-icon {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+html[data-theme="dark"] .admin-diag-info h3 {
+  color: var(--color-white, #ffffff);
+}
+html[data-theme="dark"] .admin-diag-info p {
+  color: var(--color-gray-300, #d1d5db);
+}
+html[data-theme="dark"] .admin-diag-result-sent {
+  background: rgba(22, 163, 74, 0.12);
+  color: #86efac;
+}
+html[data-theme="dark"] .admin-diag-result-unconfigured {
+  background: rgba(245, 158, 11, 0.12);
+  color: #fcd34d;
+}
+html[data-theme="dark"] .admin-diag-result-failed {
+  background: rgba(220, 38, 38, 0.12);
+  color: #fca5a5;
+}
+
 /* ===== Confirm modal (replaces window.confirm) ===== */
 .confirm-overlay {
   position: fixed;
