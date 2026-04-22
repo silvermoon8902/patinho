@@ -9,23 +9,31 @@ import { ConfirmProvider } from "@/components/shared/ConfirmModal";
 import "@/styles/globals.css";
 
 // Sentry hook: activates only if VITE_SENTRY_DSN is set at build time.
-// Import is dynamic so the @sentry/react dependency is optional —
-// developers without it still get a functional build.
-const sentryDsn = import.meta.env.VITE_SENTRY_DSN as string | undefined;
+// Loaded through window["Function"] to bypass TypeScript's static-import
+// resolution — this keeps @sentry/react an optional dependency that only
+// needs to be installed when the DSN is configured.
+const sentryDsn = (import.meta as unknown as { env?: Record<string, string> })
+  .env?.VITE_SENTRY_DSN;
 if (sentryDsn) {
-  import("@sentry/react")
-    .then((Sentry) => {
+  const runtimeImport = new Function(
+    "m",
+    "return import(m)"
+  ) as (m: string) => Promise<unknown>;
+  runtimeImport("@sentry/react")
+    .then((mod) => {
+      const Sentry = mod as {
+        init: (opts: Record<string, unknown>) => void;
+      };
       Sentry.init({
         dsn: sentryDsn,
-        environment: import.meta.env.MODE,
+        environment: (import.meta as unknown as { env?: { MODE?: string } })
+          .env?.MODE,
         tracesSampleRate: 0.05,
-        replaysSessionSampleRate: 0,
-        replaysOnErrorSampleRate: 0.1,
       });
       (window as unknown as { Sentry: typeof Sentry }).Sentry = Sentry;
     })
     .catch(() => {
-      // @sentry/react not installed locally — skip silently.
+      // @sentry/react not installed — skip silently.
     });
 }
 
