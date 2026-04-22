@@ -18,6 +18,36 @@ async def create_pix_deposit(
     db: AsyncSession, user_id: uuid.UUID, amount: Decimal
 ) -> Payment:
     """Generate a Pix charge via Mercado Pago and persist the Payment."""
+    # Velocity check: cap deposits per user per 24h to deter chargeback/fraud.
+    # 10 deposit attempts per 24h and max R$ 5000/day total.
+    from sqlalchemy import func
+    now = datetime.now(timezone.utc)
+    window_start = now - timedelta(hours=24)
+    daily_result = await db.execute(
+        select(
+            func.count(Payment.id),
+            func.coalesce(func.sum(Payment.amount), 0),
+        ).where(
+            Payment.user_id == user_id,
+            Payment.created_at >= window_start,
+        )
+    )
+    row = daily_result.first()
+    count_24h, sum_24h = (row or (0, 0))
+    if count_24h >= 10:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=(
+                "Limite diário de tentativas de depósito atingido. "
+                "Tente novamente em algumas horas."
+            ),
+        )
+    if Decimal(str(sum_24h)) + amount > Decimal("5000"):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Limite diário de depósitos (R$ 5.000) seria ultrapassado.",
+        )
+
     external_reference = str(uuid.uuid4())
 
     mp_response = await mp_client.create_pix_payment(

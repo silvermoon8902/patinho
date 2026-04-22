@@ -1,0 +1,72 @@
+{
+  "_comment": "Seed catalog. Only keys with stable, reused copy live here today — ad-hoc text still lives inline in components. Extract more keys incrementally as pages settle.",
+  "app": {
+    "name": "Patinho",
+    "tagline": "Desafios entre Amigos"
+  },
+  "nav": {
+    "home": "Início",
+    "bets": "Desafios",
+    "wallet": "Carteira",
+    "ranking": "Ranking",
+    "profile": "Perfil"
+  },
+  "action": {
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "delete": "Excluir",
+    "remove": "Remover",
+    "leave": "Sair",
+    "create": "Criar",
+    "edit": "Editar",
+    "back": "Voltar",
+    "next": "Próximo",
+    "submit": "Enviar",
+    "close": "Fechar",
+    "continue": "Continuar",
+    "retry": "Tentar novamente"
+  },
+  "status": {
+    "loading": "Carregando…",
+    "saving": "Salvando…",
+    "sending": "Enviando…",
+    "updating": "Atualizando…",
+    "open": "Aberta",
+    "locked": "Travada",
+    "pending_confirmation": "Aguardando Confirmação",
+    "voting": "Votação",
+    "disputed": "Disputada",
+    "resolved": "Encerrada",
+    "cancelled": "Cancelada"
+  },
+  "error": {
+    "generic": "Não foi possível completar a ação. Tente novamente em instantes.",
+    "unauthorized": "Faça login para continuar.",
+    "not_found": "Conteúdo não encontrado.",
+    "network": "Erro de conexão. Verifique sua internet e tente de novo.",
+    "forbidden": "Você não tem permissão para acessar esta área."
+  },
+  "empty": {
+    "bets_any": "Você ainda não tem desafios",
+    "bets_active": "Nenhum desafio ativo no momento",
+    "bets_resolved": "Nenhum desafio encerrado ainda",
+    "leagues_any": "Você ainda não faz parte de nenhuma liga",
+    "ranking": "O ranking aparece assim que tivermos desafios encerrados"
+  },
+  "pluralize": {
+    "participant_one": "1 participante",
+    "participant_other": "{{count}} participantes",
+    "day_one": "1 dia restante",
+    "day_other": "{{count}} dias restantes",
+    "hour_one": "1 hora restante",
+    "hour_other": "{{count}} horas restantes"
+  },
+  "footer": {
+    "terms": "Termos",
+    "privacy": "Privacidade",
+    "lgpd": "LGPD",
+    "responsible": "Jogo responsável",
+    "tagline": "Patinho · Desafios entre amigos"
+  }
+}
