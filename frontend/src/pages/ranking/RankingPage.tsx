@@ -127,7 +127,7 @@ export default function RankingPage() {
         </div>
       )}
 
-      {loading && <p className="ranking-loading">Carregando...</p>}
+      {loading && <p className="ranking-loading" aria-busy="true">Carregando ranking…</p>}
 
       {/* Top 3 podium */}
       {top3.length > 0 && (

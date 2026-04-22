@@ -37,6 +37,20 @@ if (sentryDsn) {
     });
 }
 
+// Register the PWA service worker. Production-only so Vite dev HMR isn't
+// interfered with. Fails silently if unsupported.
+if (
+  typeof window !== "undefined" &&
+  "serviceWorker" in navigator &&
+  (import.meta as unknown as { env?: { PROD?: boolean } }).env?.PROD
+) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => {
+      /* swallow */
+    });
+  });
+}
+
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <Provider store={store}>

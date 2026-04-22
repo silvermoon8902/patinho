@@ -59,7 +59,7 @@ export default function AdminFeePage() {
       )}
 
       {loading && !feeConfig && (
-        <p className="empty-state">Carregando...</p>
+        <p className="empty-state" aria-busy="true">Carregando configuração…</p>
       )}
 
       <div className="admin-fee-form card">

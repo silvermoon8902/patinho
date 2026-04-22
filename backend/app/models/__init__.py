@@ -15,6 +15,7 @@ from app.models.tournament import (
     TournamentPalpite,
     TournamentChampionPalpite,
 )
+from app.models.admin_action import AdminAction
 
 __all__ = [
     "User",

@@ -6,6 +6,7 @@ import {
   toggleUserActive,
   makeAdmin,
 } from "@/store/adminSlice";
+import { SkeletonListRow } from "@/components/shared/Skeleton";
 
 export default function AdminUsersPage() {
   const dispatch = useDispatch<AppDispatch>();
@@ -57,7 +58,13 @@ export default function AdminUsersPage() {
         </button>
       </div>
 
-      {loading && <p className="empty-state">Carregando...</p>}
+      {loading && (
+        <div aria-busy="true">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <SkeletonListRow key={i} />
+          ))}
+        </div>
+      )}
 
       {!loading && users.length === 0 && (
         <p className="empty-state">Nenhum usuário encontrado</p>

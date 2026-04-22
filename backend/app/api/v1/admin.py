@@ -1,12 +1,16 @@
+from datetime import datetime, timezone
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
+from app.models.admin_action import AdminAction
+from app.models.chat_message import ChatMessage
 from app.models.user import User
-from app.services import admin_service
+from app.services import admin_service, audit_service
 from app.services.auth_service import get_admin_user
 
 router = APIRouter(tags=["admin"])
@@ -209,3 +213,127 @@ async def payment_mode(admin: User = Depends(get_admin_user)):
     tok = settings.MERCADO_PAGO_ACCESS_TOKEN or ""
     mode = "test" if tok.startswith("TEST-") else ("live" if tok else "unconfigured")
     return {"mode": mode, "configured": bool(tok)}
+
+
+# ================================================================
+# Admin audit log + reactivation + chat moderation
+# ================================================================
+
+
+@router.get("/audit")
+async def list_audit_log(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=200),
+    action: str | None = Query(None),
+    admin: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List admin audit actions, newest first."""
+    stmt = select(AdminAction).order_by(AdminAction.created_at.desc())
+    if action:
+        stmt = stmt.where(AdminAction.action == action)
+    stmt = stmt.offset(skip).limit(limit)
+    result = await db.execute(stmt)
+    rows = list(result.scalars().all())
+    # Enrich with admin usernames
+    admin_ids = {r.admin_id for r in rows}
+    admin_ids |= {r.target_user_id for r in rows if r.target_user_id}
+    users_map: dict = {}
+    if admin_ids:
+        u_result = await db.execute(
+            select(User).where(User.id.in_(list(admin_ids)))
+        )
+        for u in u_result.scalars().all():
+            users_map[u.id] = u.username
+    return [
+        {
+            "id": str(r.id),
+            "action": r.action,
+            "admin_username": users_map.get(r.admin_id, "?"),
+            "target_username": users_map.get(r.target_user_id)
+            if r.target_user_id else None,
+            "target_bet_id": str(r.target_bet_id) if r.target_bet_id else None,
+            "metadata": r.action_metadata,
+            "ip_address": r.ip_address,
+            "created_at": r.created_at.isoformat() if r.created_at else None,
+        }
+        for r in rows
+    ]
+
+
+class ReactivateUserRequest(BaseModel):
+    reason: str | None = None
+
+
+@router.post("/users/{user_id}/reactivate", status_code=200)
+async def reactivate_user(
+    user_id: UUID,
+    body: ReactivateUserRequest,
+    request: Request,
+    admin: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Undo a self-exclusion or admin deactivation. Sets is_active=true and clears self_excluded_at."""
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuário não encontrado",
+        )
+    if user.email.endswith("@deleted.local"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Conta anonimizada não pode ser reativada",
+        )
+    user.is_active = True
+    user.self_excluded_at = None
+    await db.flush()
+    await audit_service.record(
+        db,
+        admin_id=admin.id,
+        action="user.reactivate",
+        target_user_id=user.id,
+        metadata={"reason": body.reason},
+        request=request,
+    )
+    return {"id": str(user.id), "is_active": user.is_active}
+
+
+class ModerateChatMessageRequest(BaseModel):
+    reason: str | None = None
+
+
+@router.post("/chat/messages/{message_id}/delete", status_code=200)
+async def delete_chat_message(
+    message_id: UUID,
+    body: ModerateChatMessageRequest,
+    request: Request,
+    admin: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Soft-delete a chat message. Stays in DB for audit but hidden from clients."""
+    result = await db.execute(
+        select(ChatMessage).where(ChatMessage.id == message_id)
+    )
+    msg = result.scalar_one_or_none()
+    if not msg:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Mensagem não encontrada",
+        )
+    if msg.deleted_at:
+        return {"detail": "already deleted"}
+    msg.deleted_at = datetime.now(timezone.utc)
+    msg.deleted_by = admin.id
+    await db.flush()
+    await audit_service.record(
+        db,
+        admin_id=admin.id,
+        action="chat.delete_message",
+        target_user_id=msg.user_id,
+        target_bet_id=msg.bet_id,
+        metadata={"message_id": str(msg.id), "reason": body.reason},
+        request=request,
+    )
+    return {"detail": "deleted", "message_id": str(msg.id)}

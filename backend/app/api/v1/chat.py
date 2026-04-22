@@ -152,7 +152,10 @@ async def list_messages(
 
     result = await db.execute(
         select(ChatMessage)
-        .where(ChatMessage.bet_id == bet_id)
+        .where(
+            ChatMessage.bet_id == bet_id,
+            ChatMessage.deleted_at.is_(None),
+        )
         .order_by(ChatMessage.created_at.asc())
         .offset(skip)
         .limit(limit)

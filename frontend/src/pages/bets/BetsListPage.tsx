@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch, RootState } from "@/store";
 import { fetchMyBets } from "@/store/betSlice";
 import BetCard from "@/components/bets/BetCard";
+import { SkeletonBetCard } from "@/components/shared/Skeleton";
 
 type TabFilter = "active" | "resolved" | "all";
 
@@ -82,7 +83,11 @@ export default function BetsListPage() {
       {error && <div className="alert alert-error">{error}</div>}
 
       {loading && (
-        <div className="bets-loading">Carregando desafios...</div>
+        <div className="bets-grid" aria-busy="true">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <SkeletonBetCard key={i} />
+          ))}
+        </div>
       )}
 
       {!loading && bets.length === 0 && (

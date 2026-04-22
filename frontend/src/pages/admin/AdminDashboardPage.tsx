@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import type { RootState, AppDispatch } from "@/store";
 import apiClient from "@/api/client";
 import { useToast } from "@/components/shared/Toast";
+import { Skeleton } from "@/components/shared/Skeleton";
 import { fetchDashboardStats } from "@/store/adminSlice";
 import { formatCurrency } from "@/utils/format";
 
@@ -63,7 +64,16 @@ export default function AdminDashboardPage() {
 
       {error && <div className="alert alert-error">{error}</div>}
 
-      {loading && !stats && <p className="empty-state">Carregando...</p>}
+      {loading && !stats && (
+        <div className="admin-stats-grid" aria-busy="true">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="card admin-stat-card">
+              <Skeleton width="60%" height={12} />
+              <Skeleton width="80%" height={28} />
+            </div>
+          ))}
+        </div>
+      )}
 
       {stats && (
         <div className="admin-stats-grid">

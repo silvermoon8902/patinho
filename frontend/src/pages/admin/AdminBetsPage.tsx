@@ -8,6 +8,7 @@ import {
 } from "@/store/adminSlice";
 import type { AdminBet } from "@/store/adminSlice";
 import { formatCurrency } from "@/utils/format";
+import { SkeletonListRow } from "@/components/shared/Skeleton";
 
 const STATUS_OPTIONS = [
   { value: "", label: "Todos" },
@@ -102,7 +103,13 @@ export default function AdminBetsPage() {
         </select>
       </div>
 
-      {loading && <p className="empty-state">Carregando...</p>}
+      {loading && (
+        <div aria-busy="true">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <SkeletonListRow key={i} />
+          ))}
+        </div>
+      )}
 
       {!loading && bets.length === 0 && (
         <p className="empty-state">Nenhum desafio encontrado</p>
