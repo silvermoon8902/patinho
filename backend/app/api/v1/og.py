@@ -1,15 +1,19 @@
 """
 Open Graph preview endpoints.
 
-Generates a per-invite SVG preview that WhatsApp / Facebook / Twitter
-can unfurl. SVG keeps this dependency-free (no PIL / Pillow required);
-social sites that require raster can hit the browser's svg-to-png path
-or we can swap this to Pillow later.
+Generates a per-invite social preview. Two variants:
+  - /og/invite/{token}.svg — dependency-free SVG
+  - /og/invite/{token}.png — rendered via Pillow for WhatsApp/FB unfurl
+    (most social crawlers prefer raster)
+
+The no-extension `/og/invite/{token}` path returns SVG for backward
+compatibility with the initial release.
 """
 from __future__ import annotations
 
 import html
-from uuid import UUID
+import io
+import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import select
@@ -18,6 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.models.bet import Bet
 
+logger = logging.getLogger(__name__)
 router = APIRouter(tags=["og"])
 
 
@@ -84,5 +89,128 @@ async def invite_og_image(
     return Response(
         content=svg,
         media_type="image/svg+xml",
+        headers={"Cache-Control": "public, max-age=3600"},
+    )
+
+
+def _render_png(title: str, description: str, entry: str) -> bytes:
+    """Render a 1200x630 PNG social card with Pillow. Mirrors the SVG layout."""
+    from PIL import Image, ImageDraw, ImageFont
+
+    W, H = 1200, 630
+    NAVY = (0, 31, 63, 255)
+    NAVY_LIGHT = (0, 46, 93, 255)
+    YELLOW = (255, 209, 13, 255)
+    WHITE = (255, 255, 255, 255)
+
+    img = Image.new("RGBA", (W, H), NAVY)
+    draw = ImageDraw.Draw(img)
+    # Soft diagonal gradient
+    for y in range(H):
+        mix = y / H
+        r = int(NAVY[0] + (NAVY_LIGHT[0] - NAVY[0]) * mix)
+        g = int(NAVY[1] + (NAVY_LIGHT[1] - NAVY[1]) * mix)
+        b = int(NAVY[2] + (NAVY_LIGHT[2] - NAVY[2]) * mix)
+        draw.line((0, y, W, y), fill=(r, g, b, 255))
+
+    # Card border
+    draw.rounded_rectangle(
+        (60, 60, W - 60, H - 60),
+        radius=32,
+        outline=(255, 209, 13, 50),
+        width=2,
+    )
+
+    font_candidates = [
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+        "/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf",
+    ]
+    def pick(size: int):
+        for c in font_candidates:
+            try:
+                return ImageFont.truetype(c, size)
+            except Exception:
+                continue
+        return ImageFont.load_default()
+
+    f_brand = pick(48)
+    f_tag = pick(22)
+    f_title = pick(64)
+    f_desc = pick(28)
+    f_pill = pick(30)
+
+    draw.text((100, 140), "Patinho", fill=YELLOW, font=f_brand)
+    draw.text((100, 200), "Desafios entre Amigos", fill=(255, 255, 255, 180), font=f_tag)
+
+    # Title (wrap if long)
+    max_chars = 28
+    lines = []
+    cur = ""
+    for word in title.split():
+        probe = (cur + " " + word).strip()
+        if len(probe) > max_chars and cur:
+            lines.append(cur)
+            cur = word
+        else:
+            cur = probe
+    if cur:
+        lines.append(cur)
+    y = 270
+    for line in lines[:2]:
+        draw.text((100, y), line, fill=WHITE, font=f_title)
+        y += 76
+
+    # Description
+    draw.text((100, max(y + 10, 410)), description[:90], fill=(255, 255, 255, 200), font=f_desc)
+
+    # Entry pill
+    pill_x, pill_y, pill_w, pill_h = 100, 500, 380, 72
+    draw.rounded_rectangle(
+        (pill_x, pill_y, pill_x + pill_w, pill_y + pill_h),
+        radius=36, fill=YELLOW,
+    )
+    draw.text((pill_x + 30, pill_y + 20), "Entrada", fill=NAVY, font=f_pill)
+    draw.text((pill_x + 180, pill_y + 18), entry, fill=NAVY, font=f_pill)
+
+    # URL footer
+    draw.text((W - 260, H - 80), "patinho.app", fill=(255, 255, 255, 160), font=f_tag)
+
+    buf = io.BytesIO()
+    img.convert("RGB").save(buf, format="PNG", optimize=True)
+    return buf.getvalue()
+
+
+@router.get("/og/invite/{invite_token}.png")
+async def invite_og_png(
+    invite_token: str,
+    db: AsyncSession = Depends(get_db),
+):
+    """PNG variant of the invite preview — preferred by most social unfurlers."""
+    result = await db.execute(
+        select(Bet).where(Bet.invite_token == invite_token)
+    )
+    bet = result.scalar_one_or_none()
+    if not bet:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Bet not found",
+        )
+
+    title = _fit_text(bet.title or "Patinho", 80)
+    entry = _format_brl(bet.entry_amount)
+    desc = _fit_text((bet.description or "Desafio entre amigos no Patinho").strip(), 120)
+
+    try:
+        png = _render_png(title, desc, entry)
+    except Exception:
+        logger.exception("OG PNG render failed for bet %s", bet.id)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to render preview",
+        )
+
+    return Response(
+        content=png,
+        media_type="image/png",
         headers={"Cache-Control": "public, max-age=3600"},
     )
