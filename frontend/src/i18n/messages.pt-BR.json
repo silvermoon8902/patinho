@@ -11,6 +11,20 @@
     "ranking": "Ranking",
     "profile": "Perfil"
   },
+  "dashboard": {
+    "greeting": "Olá, {{name}}!",
+    "greeting_fallback": "Jogador",
+    "welcome": "Bem-vindo ao Patinho",
+    "balance": "Saldo",
+    "active_bets": "Desafios ativos",
+    "quick_actions": "Ações rápidas",
+    "create_bet": "Criar Desafio",
+    "deposit": "Depositar",
+    "see_ranking": "Ver Ranking",
+    "leagues": "Ligas",
+    "bolao_tag": "Bolão em andamento",
+    "bolao_cta": "Faça seus palpites e acompanhe o ranking ao vivo."
+  },
   "action": {
     "save": "Salvar",
     "cancel": "Cancelar",

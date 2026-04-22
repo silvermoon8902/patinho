@@ -6,6 +6,7 @@ import { fetchWallet } from "@/store/walletSlice";
 import { fetchMyBets } from "@/store/betSlice";
 import { useAuth } from "@/hooks/useAuth";
 import { formatCurrency } from "@/utils/format";
+import { t } from "@/i18n";
 
 export default function DashboardPage() {
   const dispatch = useDispatch<AppDispatch>();
@@ -38,19 +39,19 @@ export default function DashboardPage() {
   return (
     <div className="dashboard-page">
       <div className="welcome-section">
-        <h1>Olá, {user?.username || "Jogador"}!</h1>
-        <p>Bem-vindo ao Patinho</p>
+        <h1>{t("dashboard.greeting", { name: user?.username || t("dashboard.greeting_fallback") })}</h1>
+        <p>{t("dashboard.welcome")}</p>
       </div>
 
       <div className="stats-grid">
         <div className="card stat-card">
-          <span className="stat-label">Saldo</span>
+          <span className="stat-label">{t("dashboard.balance")}</span>
           <span className="stat-value">
             {wallet ? formatCurrency(wallet.balance) : "R$ 0,00"}
           </span>
         </div>
         <div className="card stat-card">
-          <span className="stat-label">Desafios ativos</span>
+          <span className="stat-label">{t("dashboard.active_bets")}</span>
           <span className="stat-value">{activeBetsCount}</span>
         </div>
       </div>
@@ -61,12 +62,12 @@ export default function DashboardPage() {
           className="card bolao-dashboard-card"
         >
           <div className="bolao-dashboard-content">
-            <span className="bolao-dashboard-tag">Bolão em andamento</span>
+            <span className="bolao-dashboard-tag">{t("dashboard.bolao_tag")}</span>
             <strong className="bolao-dashboard-title">
               {activeBolao.title}
             </strong>
             <p className="bolao-dashboard-desc">
-              Faça seus palpites e acompanhe o ranking ao vivo.
+              {t("dashboard.bolao_cta")}
             </p>
           </div>
           <span className="bolao-dashboard-cta" aria-hidden="true">→</span>
@@ -74,19 +75,19 @@ export default function DashboardPage() {
       )}
 
       <div className="quick-actions">
-        <h2>Ações rápidas</h2>
+        <h2>{t("dashboard.quick_actions")}</h2>
         <div className="actions-grid">
           <Link to="/bets/create" className="card action-card">
-            <span className="action-label">Criar Desafio</span>
+            <span className="action-label">{t("dashboard.create_bet")}</span>
           </Link>
           <Link to="/wallet" className="card action-card">
-            <span className="action-label">Depositar</span>
+            <span className="action-label">{t("dashboard.deposit")}</span>
           </Link>
           <Link to="/ranking" className="card action-card">
-            <span className="action-label">Ver Ranking</span>
+            <span className="action-label">{t("dashboard.see_ranking")}</span>
           </Link>
           <Link to="/leagues" className="card action-card">
-            <span className="action-label">Ligas</span>
+            <span className="action-label">{t("dashboard.leagues")}</span>
           </Link>
         </div>
       </div>

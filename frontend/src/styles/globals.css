@@ -3719,6 +3719,28 @@ html[data-theme="dark"] .confirm-icon-danger {
   border-bottom: none;
 }
 
+.profile-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  cursor: pointer;
+}
+
+.profile-toggle-title {
+  font-weight: 600;
+  color: var(--color-navy);
+  margin-bottom: 2px;
+}
+
+.profile-toggle-row input[type="checkbox"] {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  accent-color: var(--color-navy);
+  cursor: pointer;
+}
+
 .profile-info-label {
   font-size: 0.9rem;
   color: var(--color-gray-500);

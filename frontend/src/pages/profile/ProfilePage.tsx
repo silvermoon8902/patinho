@@ -4,6 +4,11 @@ import { useToast } from "@/components/shared/Toast";
 import { useConfirm } from "@/components/shared/ConfirmModal";
 import apiClient from "@/api/client";
 import { avatarColor, avatarInitial } from "@/utils/avatar";
+import {
+  hapticEnabled,
+  setHapticEnabled,
+  hapticTap,
+} from "@/utils/haptic";
 
 export default function ProfilePage() {
   const { user, logout } = useAuth();
@@ -23,6 +28,13 @@ export default function ProfilePage() {
   const [deleteConfirmEmail, setDeleteConfirmEmail] = useState("");
   const [deleteConfirmPassword, setDeleteConfirmPassword] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const [haptic, setHaptic] = useState<boolean>(hapticEnabled());
+
+  const handleHapticToggle = (next: boolean) => {
+    setHaptic(next);
+    setHapticEnabled(next);
+    if (next) hapticTap();
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -235,6 +247,24 @@ export default function ProfilePage() {
         >
           {limitsSaving ? "Salvando..." : "Salvar limites"}
         </button>
+      </div>
+
+      <div className="card">
+        <h3>Preferências</h3>
+        <label className="profile-toggle-row">
+          <div>
+            <div className="profile-toggle-title">Vibração ao tocar</div>
+            <div className="form-hint">
+              Retorno tátil em botões e confirmações. Requer um aparelho compatível.
+            </div>
+          </div>
+          <input
+            type="checkbox"
+            checked={haptic}
+            onChange={(e) => handleHapticToggle(e.target.checked)}
+            aria-label="Ativar vibração"
+          />
+        </label>
       </div>
 
       <div className="card">
