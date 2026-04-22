@@ -73,6 +73,7 @@ _routers: list[tuple[str, str, str]] = [
     ("app.api.v1.sports", "router", "/api/v1/sports"),
     ("app.api.v1.leagues", "router", "/api/v1/leagues"),
     ("app.api.v1.tournament", "router", "/api/v1"),
+    ("app.api.v1.og", "router", "/api/v1"),
 ]
 
 import importlib
