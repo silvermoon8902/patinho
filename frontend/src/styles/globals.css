@@ -853,6 +853,40 @@ html[data-theme="dark"] .legal-status-active {
   text-decoration: underline;
 }
 
+/* ===== Empty-state illustrations ===== */
+.empty-state-card {
+  padding: 28px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+.empty-state-card svg {
+  flex-shrink: 0;
+}
+.empty-state-title {
+  margin: 0;
+  font-size: 1.05rem;
+  color: var(--color-navy, #001F3F);
+}
+.empty-state-desc {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--color-gray-600, #4b5563);
+  line-height: 1.5;
+  max-width: 360px;
+}
+.empty-state-action {
+  margin-top: 6px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+html[data-theme="dark"] .empty-state-title { color: var(--color-white, #ffffff); }
+html[data-theme="dark"] .empty-state-desc { color: var(--color-gray-300, #d1d5db); }
+
 /* ===== Profile avatar colored ring ===== */
 .profile-avatar-colored {
   position: relative;

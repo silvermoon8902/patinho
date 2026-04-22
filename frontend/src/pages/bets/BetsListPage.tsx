@@ -5,6 +5,7 @@ import type { AppDispatch, RootState } from "@/store";
 import { fetchMyBets } from "@/store/betSlice";
 import BetCard from "@/components/bets/BetCard";
 import { SkeletonBetCard } from "@/components/shared/Skeleton";
+import EmptyState from "@/components/shared/EmptyState";
 
 type TabFilter = "active" | "resolved" | "all";
 
@@ -91,36 +92,48 @@ export default function BetsListPage() {
       )}
 
       {!loading && bets.length === 0 && (
-        <div className="bets-empty card">
-          <p className="bets-empty-text">
-            {hasAnyBets === false
+        <EmptyState
+          icon="bets"
+          title={
+            hasAnyBets === false
               ? "Você ainda não tem desafios"
               : activeTab === "active"
               ? "Nenhum desafio ativo no momento"
               : activeTab === "resolved"
               ? "Nenhum desafio encerrado ainda"
-              : "Você ainda não tem desafios"}
-          </p>
-          {hasAnyBets === false && activeTab !== "resolved" && (
-            <Link to="/bets/create" className="btn btn-primary">
-              Criar seu primeiro desafio
-            </Link>
-          )}
-          {hasAnyBets && activeTab === "resolved" && (
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={() => setActiveTab("active")}
-            >
-              Ver desafios ativos
-            </button>
-          )}
-          {hasAnyBets && activeTab === "active" && (
-            <Link to="/bets/create" className="btn btn-primary">
-              Criar novo desafio
-            </Link>
-          )}
-        </div>
+              : "Você ainda não tem desafios"
+          }
+          description={
+            hasAnyBets === false
+              ? "Crie seu primeiro desafio e convide seus amigos para participar."
+              : activeTab === "resolved"
+              ? "Quando seus desafios forem encerrados, o histórico aparece aqui."
+              : "Pronto para criar um novo?"
+          }
+          action={
+            <>
+              {hasAnyBets === false && activeTab !== "resolved" && (
+                <Link to="/bets/create" className="btn btn-primary">
+                  Criar seu primeiro desafio
+                </Link>
+              )}
+              {hasAnyBets && activeTab === "resolved" && (
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setActiveTab("active")}
+                >
+                  Ver desafios ativos
+                </button>
+              )}
+              {hasAnyBets && activeTab === "active" && (
+                <Link to="/bets/create" className="btn btn-primary">
+                  Criar novo desafio
+                </Link>
+              )}
+            </>
+          }
+        />
       )}
 
       {!loading && bets.length > 0 && (

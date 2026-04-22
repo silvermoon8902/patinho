@@ -189,7 +189,7 @@ export default function BetDetailPage() {
   if (loading && !currentBet) {
     return (
       <div className="bet-detail-page">
-        <div className="bets-loading">Carregando desafio...</div>
+        <div className="bets-loading" aria-busy="true">Carregando desafio…</div>
       </div>
     );
   }

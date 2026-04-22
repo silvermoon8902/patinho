@@ -131,7 +131,7 @@ export default function LeagueDetailPage() {
   };
 
   if (loading && !currentLeague) {
-    return <div className="bets-loading">Carregando liga...</div>;
+    return <div className="bets-loading" aria-busy="true">Carregando liga…</div>;
   }
 
   if (error && !currentLeague) {

@@ -192,7 +192,7 @@ export default function TournamentPalpitesPage() {
         </div>
       </section>
 
-      {loading && <div className="bets-loading">Carregando partidas...</div>}
+      {loading && <div className="bets-loading" aria-busy="true">Carregando partidas…</div>}
       {!loading && fixtures.length === 0 && (
         <div className="bets-empty card">
           <p className="bets-empty-text">

@@ -41,7 +41,7 @@ export default function LeaguesListPage() {
       {error && <div className="alert alert-error">{error}</div>}
 
       {loading && myLeagues.length === 0 && (
-        <div className="bets-loading">Carregando ligas...</div>
+        <div className="bets-loading" aria-busy="true">Carregando ligas…</div>
       )}
 
       {!loading && myLeagues.length === 0 && (
