@@ -23,6 +23,9 @@ import AdminFeePage from "@/pages/admin/AdminFeePage";
 import TermsPage from "@/pages/legal/TermsPage";
 import PrivacyPage from "@/pages/legal/PrivacyPage";
 import LgpdPage from "@/pages/legal/LgpdPage";
+import CreateBolaoPage from "@/pages/tournament/CreateBolaoPage";
+import TournamentPalpitesPage from "@/pages/tournament/TournamentPalpitesPage";
+import TournamentRankingPage from "@/pages/tournament/TournamentRankingPage";
 import { useAuth } from "@/hooks/useAuth";
 
 function AdminRoute({ children }: { children: React.ReactNode }) {
@@ -67,6 +70,9 @@ export default function App() {
           <Route path="/" element={<DashboardPage />} />
           <Route path="/bets" element={<BetsListPage />} />
           <Route path="/bets/create" element={<CreateBetPage />} />
+          <Route path="/bolao/create" element={<CreateBolaoPage />} />
+          <Route path="/bets/:betId/palpites" element={<TournamentPalpitesPage />} />
+          <Route path="/bets/:betId/ranking" element={<TournamentRankingPage />} />
           <Route path="/bets/:betId" element={<BetDetailPage />} />
           <Route path="/leagues" element={<LeaguesListPage />} />
           <Route path="/leagues/:leagueId" element={<LeagueDetailPage />} />

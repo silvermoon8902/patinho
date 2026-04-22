@@ -689,6 +689,20 @@ export default function CreateBetPage() {
               dos participantes.
             </p>
           </button>
+
+          <button
+            type="button"
+            className="bet-type-card card bet-type-card-bolao"
+            onClick={() => navigate("/bolao/create")}
+          >
+            <h3>Bolão da Copa do Mundo 2026</h3>
+            <p>
+              Palpite em todos os jogos da Copa. Pontuação dobrada nas
+              eliminatórias + bônus de acertar o campeão. Ranking ao vivo,
+              apuração automática.
+            </p>
+            <span className="bet-type-badge">Novo</span>
+          </button>
         </div>
       </div>
     );

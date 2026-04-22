@@ -7,6 +7,7 @@ import rankingReducer from "./rankingSlice";
 import adminReducer from "./adminSlice";
 import sportsReducer from "./sportsSlice";
 import leaguesReducer from "./leaguesSlice";
+import tournamentReducer from "./tournamentSlice";
 
 export const store = configureStore({
   reducer: {
@@ -18,6 +19,7 @@ export const store = configureStore({
     admin: adminReducer,
     sports: sportsReducer,
     leagues: leaguesReducer,
+    tournament: tournamentReducer,
   },
 });
 
