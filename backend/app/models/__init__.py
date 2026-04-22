@@ -9,6 +9,12 @@ from app.models.contestation import Contestation
 from app.models.password_reset_token import PasswordResetToken
 from app.models.league import League
 from app.models.league_membership import LeagueMembership
+from app.models.bet_template import BetTemplate
+from app.models.tournament import (
+    TournamentBet,
+    TournamentPalpite,
+    TournamentChampionPalpite,
+)
 
 __all__ = [
     "User",
@@ -26,4 +32,8 @@ __all__ = [
     "PasswordResetToken",
     "League",
     "LeagueMembership",
+    "BetTemplate",
+    "TournamentBet",
+    "TournamentPalpite",
+    "TournamentChampionPalpite",
 ]

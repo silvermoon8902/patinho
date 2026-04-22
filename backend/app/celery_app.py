@@ -44,6 +44,10 @@ celery_app.conf.update(
             "task": "app.tasks.ranking.reset_weekly_ranking",
             "schedule": crontab(minute="0", hour="0", day_of_week="1"),  # Monday 00:00
         },
+        "check_tournament_matches": {
+            "task": "app.tasks.tournament.check_tournament_matches",
+            "schedule": 300.0,  # every 5 minutes, aligned with API-Football fixture query cadence
+        },
     },
 )
 
