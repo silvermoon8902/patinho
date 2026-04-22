@@ -32,6 +32,8 @@ class Settings(BaseSettings):
     SMTP_USE_TLS: bool = True
     APP_URL: str = "http://localhost:5173"
     TERMS_VERSION: str = "v1"
+    SENTRY_DSN: str = ""
+    SENTRY_TRACES_SAMPLE_RATE: float = 0.05
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 

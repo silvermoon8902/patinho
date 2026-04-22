@@ -6,6 +6,25 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 
+# Initialize Sentry only when a DSN is configured (env-var hook).
+# No effect on prod until the client provides a real DSN.
+if settings.SENTRY_DSN:
+    try:
+        import sentry_sdk
+        from sentry_sdk.integrations.fastapi import FastApiIntegration
+        from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
+
+        sentry_sdk.init(
+            dsn=settings.SENTRY_DSN,
+            environment=settings.ENVIRONMENT,
+            traces_sample_rate=settings.SENTRY_TRACES_SAMPLE_RATE,
+            integrations=[FastApiIntegration(), SqlalchemyIntegration()],
+            send_default_pii=False,
+        )
+    except Exception:
+        # Sentry SDK not installed or failed to init — do not block startup.
+        pass
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:

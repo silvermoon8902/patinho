@@ -21,27 +21,66 @@ export default class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error("ErrorBoundary caught:", error, errorInfo);
+    // Forward to Sentry if the runtime hook is wired.
+    const w = window as unknown as { Sentry?: { captureException: (e: Error, ctx?: unknown) => void } };
+    if (w.Sentry?.captureException) {
+      try {
+        w.Sentry.captureException(error, { contexts: { react: { componentStack: errorInfo.componentStack } } });
+      } catch {
+        /* swallow */
+      }
+    }
   }
+
+  handleReload = () => {
+    window.location.reload();
+  };
+
+  handleHome = () => {
+    this.setState({ hasError: false, error: null });
+    window.location.href = "/";
+  };
 
   render() {
     if (this.state.hasError) {
+      const isDev = import.meta.env?.DEV;
       return (
-        <div style={{ padding: 20, color: "#001F3F" }}>
-          <h2>Algo deu errado</h2>
-          <pre style={{ background: "#f5f5f5", padding: 12, borderRadius: 8, overflow: "auto", fontSize: 13 }}>
-            {this.state.error?.message}
-            {"\n"}
-            {this.state.error?.stack}
-          </pre>
-          <button
-            onClick={() => {
-              this.setState({ hasError: false, error: null });
-              window.location.href = "/";
-            }}
-            style={{ marginTop: 12, padding: "8px 16px", background: "#FFD10D", border: "none", borderRadius: 6, cursor: "pointer" }}
-          >
-            Voltar ao inicio
-          </button>
+        <div className="error-boundary-page">
+          <div className="error-boundary-card card">
+            <div className="error-boundary-icon" aria-hidden="true">!</div>
+            <h2>Algo deu errado</h2>
+            <p className="error-boundary-message">
+              Encontramos um erro inesperado. Tente atualizar a página ou
+              voltar ao início. Se o problema persistir, entre em contato
+              com o suporte.
+            </p>
+            {isDev && this.state.error && (
+              <details className="error-boundary-details">
+                <summary>Detalhes técnicos (desenvolvimento)</summary>
+                <pre>
+                  {this.state.error.message}
+                  {"\n\n"}
+                  {this.state.error.stack}
+                </pre>
+              </details>
+            )}
+            <div className="error-boundary-actions">
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={this.handleReload}
+              >
+                Atualizar página
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={this.handleHome}
+              >
+                Voltar ao início
+              </button>
+            </div>
+          </div>
         </div>
       );
     }
