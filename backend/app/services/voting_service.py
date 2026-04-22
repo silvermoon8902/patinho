@@ -73,6 +73,15 @@ async def cast_vote(
     await db.flush()
 
     logger.info("User %s voted for option %s on bet %s", user_id, option_id, bet_id)
+
+    # Evaluate consensus right after each vote — resolves immediately
+    # once supermajority or full-turnout majority is reached.
+    from app.services.resolution_service import check_voting_consensus
+    try:
+        await check_voting_consensus(db, bet_id)
+    except Exception:
+        logger.exception("Error checking consensus after vote on bet %s", bet_id)
+
     return vote
 
 

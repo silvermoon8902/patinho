@@ -213,9 +213,17 @@ async def resolve_sports_bet(db: AsyncSession, bet_id: UUID) -> bool:
 
 async def check_voting_consensus(db: AsyncSession, bet_id: UUID) -> bool:
     """
-    Check if any option has >= 70% of total participant votes.
-    If consensus reached, distribute prizes.
-    Returns True if resolved.
+    Decide whether a voting-phase bet can be resolved now.
+
+    Two paths to resolution:
+      1. **Early 70% supermajority**: any single option has >=70% of total
+         participant votes — resolves immediately even before everyone voted.
+      2. **Full turnout simple majority**: every participant has voted and
+         one option has strictly more votes than the next best — resolves
+         with a simple majority. Tie → no resolution (falls through to the
+         24h timeout which escalates to dispute).
+
+    Returns True if the bet was resolved.
     """
     from app.models.participation import Participation
     from app.models.vote import Vote
@@ -242,22 +250,34 @@ async def check_voting_consensus(db: AsyncSession, bet_id: UUID) -> bool:
         select(Vote).where(Vote.bet_id == bet_id)
     )
     votes = list(vote_result.scalars().all())
+    total_votes = len(votes)
 
     vote_counts: dict[UUID, int] = {}
     for vote in votes:
         vote_counts[vote.bet_option_id] = vote_counts.get(vote.bet_option_id, 0) + 1
 
-    # Check if any option has >= 70% consensus
+    # Path 1: 70% supermajority of participants
     threshold = 0.70
     for option_id, count in vote_counts.items():
         ratio = count / total_participants
         if ratio >= threshold:
             await distribute_prizes(db, bet_id, option_id)
             logger.info(
-                "Voting consensus reached for bet %s: option %s with %.1f%%",
-                bet_id,
-                option_id,
-                ratio * 100,
+                "Voting consensus (supermajority) for bet %s: option %s with %.1f%%",
+                bet_id, option_id, ratio * 100,
+            )
+            return True
+
+    # Path 2: full turnout → simple majority (but not a tie)
+    if total_votes >= total_participants and vote_counts:
+        sorted_counts = sorted(vote_counts.items(), key=lambda kv: kv[1], reverse=True)
+        top_option, top_count = sorted_counts[0]
+        second_count = sorted_counts[1][1] if len(sorted_counts) > 1 else 0
+        if top_count > second_count:
+            await distribute_prizes(db, bet_id, top_option)
+            logger.info(
+                "Voting consensus (full turnout majority) for bet %s: option %s with %d/%d",
+                bet_id, top_option, top_count, total_participants,
             )
             return True
 
