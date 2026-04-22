@@ -149,10 +149,19 @@ async def contest_result(
 
 async def accept_result(
     db: AsyncSession, bet_id: UUID, user_id: UUID
-) -> None:
-    """Participant accepts the declared result. No-op for UI feedback.
+) -> dict:
+    """
+    Participant accepts the declared result.
 
-    The auto-resolve task handles final distribution after the 24h window.
+    Records the acceptance timestamp on their participation row. If every
+    non-creator participant has accepted, the bet resolves immediately
+    and prizes are distributed — no need to wait for the 24h window.
+
+    The auto-resolve task still handles the fallback where some
+    participants never respond before the window closes.
+
+    Returns a status dict so the UI can distinguish "recorded" from
+    "resolved now".
     """
     bet = await db.get(Bet, bet_id)
     if not bet:
@@ -167,9 +176,52 @@ async def accept_result(
             detail="Bet is not pending confirmation",
         )
 
-    await _ensure_participant(db, bet_id, user_id)
-    logger.info("User %s accepted result for bet %s", user_id, bet_id)
-    return None
+    participation = await _ensure_participant(db, bet_id, user_id)
+
+    now = datetime.now(timezone.utc)
+    if participation.accepted_at is None:
+        participation.accepted_at = now
+        await db.flush()
+        logger.info("User %s accepted result for bet %s", user_id, bet_id)
+
+    # Count outstanding non-creator participations
+    result = await db.execute(
+        select(Participation).where(
+            Participation.bet_id == bet_id,
+            Participation.user_id != bet.creator_id,
+        )
+    )
+    non_creator_parts = list(result.scalars().all())
+    total = len(non_creator_parts)
+    accepted = sum(1 for p in non_creator_parts if p.accepted_at is not None)
+
+    if total == 0 or accepted >= total:
+        # Unanimous (or creator-only bet) — resolve immediately
+        from app.services.distribution_service import distribute_prizes
+
+        if bet.declared_winner_option_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Winner option missing at resolution",
+            )
+        await distribute_prizes(db, bet_id, bet.declared_winner_option_id)
+        logger.info(
+            "Bet %s resolved immediately after unanimous acceptance (%d/%d)",
+            bet_id, accepted, total,
+        )
+        return {
+            "detail": "Result accepted — bet resolved and prize distributed",
+            "resolved": True,
+            "acceptances": accepted,
+            "total_participants": total,
+        }
+
+    return {
+        "detail": "Result accepted. Waiting for the other participants.",
+        "resolved": False,
+        "acceptances": accepted,
+        "total_participants": total,
+    }
 
 
 async def get_contestations(

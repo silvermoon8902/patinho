@@ -488,8 +488,7 @@ async def accept_result(
     user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
 ):
-    await declare_service.accept_result(db, bet_id, user.id)
-    return {"detail": "Result accepted"}
+    return await declare_service.accept_result(db, bet_id, user.id)
 
 
 @router.get("/{bet_id}/contestations", response_model=list[ContestationResponse])

@@ -19,6 +19,9 @@ class Participation(Base):
     bet_option_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("bet_options.id"))
     amount: Mapped[Decimal] = mapped_column(Numeric(12, 2))
     prize_amount: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
+    accepted_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
