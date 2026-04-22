@@ -17,6 +17,7 @@ import { useWebSocket } from "@/hooks/useWebSocket";
 import { useToast } from "@/components/shared/Toast";
 import ChatWindow from "@/components/chat/ChatWindow";
 import EmailInviteModal from "@/pages/bets/EmailInviteModal";
+import { useConfirm } from "@/components/shared/ConfirmModal";
 import { formatCurrency } from "@/utils/format";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -85,6 +86,7 @@ export default function BetDetailPage() {
 
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const confirm = useConfirm();
   const { messages, sendMessage, connected } = useWebSocket(betId);
 
   useEffect(() => {
@@ -169,7 +171,14 @@ export default function BetDetailPage() {
 
   const handleDeleteBet = async () => {
     if (!betId) return;
-    if (!window.confirm("Tem certeza que deseja excluir este desafio? Esta ação não pode ser desfeita.")) return;
+    const ok = await confirm({
+      title: "Excluir este desafio?",
+      message: "Esta ação não pode ser desfeita.",
+      confirmLabel: "Excluir",
+      cancelLabel: "Cancelar",
+      tone: "danger",
+    });
+    if (!ok) return;
     const result = await dispatch(deleteBet(betId));
     if (deleteBet.fulfilled.match(result)) {
       showToast("Desafio excluído com sucesso", "success");

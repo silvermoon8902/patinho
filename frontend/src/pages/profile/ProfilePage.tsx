@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/components/shared/Toast";
+import { useConfirm } from "@/components/shared/ConfirmModal";
 import apiClient from "@/api/client";
 
 export default function ProfilePage() {
   const { user, logout } = useAuth();
   const { showToast } = useToast();
+  const confirm = useConfirm();
 
   const [username, setUsername] = useState(user?.username || "");
   const [phone, setPhone] = useState(user?.phone || "");
@@ -75,12 +77,15 @@ export default function ProfilePage() {
   };
 
   const handleSelfExclude = async () => {
-    if (
-      !window.confirm(
-        "Tem certeza? Sua conta será desativada imediatamente. Para reativar, será necessário contatar o suporte."
-      )
-    )
-      return;
+    const ok = await confirm({
+      title: "Desativar sua conta?",
+      message:
+        "Sua conta será desativada imediatamente. Para reativar, será necessário contatar o suporte.",
+      confirmLabel: "Desativar",
+      cancelLabel: "Cancelar",
+      tone: "warning",
+    });
+    if (!ok) return;
     try {
       await apiClient.post("/users/me/self-exclude", { confirm: true });
       showToast("Conta desativada", "success");
@@ -101,12 +106,15 @@ export default function ProfilePage() {
       showToast("Digite sua senha para confirmar", "error");
       return;
     }
-    if (
-      !window.confirm(
-        "Excluir a conta é irreversível. Seus dados pessoais serão apagados. Deseja continuar?"
-      )
-    )
-      return;
+    const ok = await confirm({
+      title: "Excluir sua conta permanentemente?",
+      message:
+        "Esta ação é irreversível. Seus dados pessoais serão apagados e os registros históricos serão anonimizados.",
+      confirmLabel: "Excluir conta",
+      cancelLabel: "Cancelar",
+      tone: "danger",
+    });
+    if (!ok) return;
     setDeleting(true);
     try {
       await apiClient.request({

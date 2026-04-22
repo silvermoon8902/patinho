@@ -5,6 +5,7 @@ import { Provider } from "react-redux";
 import { store } from "@/store";
 import App from "@/App";
 import { ToastProvider } from "@/components/shared/Toast";
+import { ConfirmProvider } from "@/components/shared/ConfirmModal";
 import "@/styles/globals.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
@@ -12,7 +13,9 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     <Provider store={store}>
       <BrowserRouter>
         <ToastProvider>
-          <App />
+          <ConfirmProvider>
+            <App />
+          </ConfirmProvider>
         </ToastProvider>
       </BrowserRouter>
     </Provider>

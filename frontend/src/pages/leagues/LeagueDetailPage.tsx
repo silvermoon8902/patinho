@@ -13,6 +13,7 @@ import {
 import { fetchMyBets } from "@/store/betSlice";
 import BetCard from "@/components/bets/BetCard";
 import { useToast } from "@/components/shared/Toast";
+import { useConfirm } from "@/components/shared/ConfirmModal";
 import InviteMemberModal from "./InviteMemberModal";
 
 type TabKey = "members" | "ranking" | "bets";
@@ -22,6 +23,7 @@ export default function LeagueDetailPage() {
   const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
   const { showToast } = useToast();
+  const confirm = useConfirm();
 
   const { currentLeague, ranking, loading, error } = useSelector(
     (state: RootState) => state.leagues
@@ -60,7 +62,15 @@ export default function LeagueDetailPage() {
 
   const handleLeave = async () => {
     if (!leagueId) return;
-    if (!window.confirm("Tem certeza que deseja sair desta liga?")) return;
+    const ok = await confirm({
+      title: "Sair desta liga?",
+      message:
+        "Você perderá acesso aos desafios da liga. Desafios em que você já apostou continuarão visíveis até o encerramento.",
+      confirmLabel: "Sair da liga",
+      cancelLabel: "Cancelar",
+      tone: "warning",
+    });
+    if (!ok) return;
     const result = await dispatch(leaveLeague(leagueId));
     if (leaveLeague.fulfilled.match(result)) {
       showToast("Você saiu da liga", "success");
@@ -75,12 +85,15 @@ export default function LeagueDetailPage() {
 
   const handleDelete = async () => {
     if (!leagueId) return;
-    if (
-      !window.confirm(
-        "Tem certeza que deseja excluir a liga? Esta ação não pode ser desfeita."
-      )
-    )
-      return;
+    const ok = await confirm({
+      title: "Excluir liga?",
+      message:
+        "Esta ação não pode ser desfeita. Só é possível excluir se não houver desafios ativos.",
+      confirmLabel: "Excluir liga",
+      cancelLabel: "Cancelar",
+      tone: "danger",
+    });
+    if (!ok) return;
     const result = await dispatch(deleteLeague(leagueId));
     if (deleteLeague.fulfilled.match(result)) {
       showToast("Liga excluída", "success");
@@ -95,7 +108,15 @@ export default function LeagueDetailPage() {
 
   const handleRemoveMember = async (userId: string, username: string) => {
     if (!leagueId) return;
-    if (!window.confirm(`Remover ${username} da liga?`)) return;
+    const ok = await confirm({
+      title: `Remover ${username}?`,
+      message:
+        "Esse membro perderá o acesso aos desafios da liga. Pode ser adicionado novamente depois.",
+      confirmLabel: "Remover membro",
+      cancelLabel: "Cancelar",
+      tone: "warning",
+    });
+    if (!ok) return;
     const result = await dispatch(
       removeLeagueMember({ leagueId, userId })
     );
