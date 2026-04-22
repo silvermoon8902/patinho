@@ -35,4 +35,4 @@ class ChatMessage(Base):
     )
 
     bet: Mapped["Bet"] = relationship()
-    user: Mapped["User"] = relationship()
+    user: Mapped["User"] = relationship(foreign_keys=[user_id])
