@@ -40,6 +40,11 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
     debug=settings.DEBUG,
+    # Default public docs paths disabled. Admin-gated re-exports are
+    # mounted at /api/v1/admin/docs and /api/v1/admin/openapi.json below.
+    docs_url=None,
+    redoc_url=None,
+    openapi_url=None,
 )
 
 # CORS middleware
@@ -102,3 +107,33 @@ except Exception as e:
 @app.get("/api/health")
 async def health_check() -> dict[str, str]:
     return {"status": "ok"}
+
+
+# ================================================================
+# Admin-gated API docs — only authenticated admins can see the full
+# OpenAPI schema or the Swagger UI. Prevents attackers from mapping
+# every endpoint just by visiting /docs.
+# ================================================================
+from fastapi import Depends
+from fastapi.openapi.docs import get_swagger_ui_html
+from fastapi.openapi.utils import get_openapi
+
+from app.models.user import User as _User
+from app.services.auth_service import get_admin_user as _get_admin
+
+
+@app.get("/api/v1/admin/openapi.json", include_in_schema=False)
+async def _admin_openapi(_: _User = Depends(_get_admin)):
+    return get_openapi(
+        title=app.title,
+        version=app.version,
+        routes=app.routes,
+    )
+
+
+@app.get("/api/v1/admin/docs", include_in_schema=False)
+async def _admin_swagger(_: _User = Depends(_get_admin)):
+    return get_swagger_ui_html(
+        openapi_url="/api/v1/admin/openapi.json",
+        title="Patinho API — docs (admin)",
+    )

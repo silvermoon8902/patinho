@@ -67,11 +67,45 @@ async def register_user(db: AsyncSession, user_data: UserRegister) -> User:
 
 
 async def authenticate_user(db: AsyncSession, email: str, password: str) -> User:
-    """Verify credentials and return the user."""
+    """
+    Verify credentials and return the user.
+
+    Per-email failed-login rate limit (Redis): 8 failures in 5 minutes →
+    lockout for 15 minutes. Complements the nginx per-IP limiter by
+    catching distributed brute-force that rotates source IPs.
+    """
+    # Per-email failed-login limiter (Redis)
+    try:
+        import redis.asyncio as aioredis
+
+        from app.config import settings
+        redis_client = aioredis.from_url(settings.REDIS_URL, decode_responses=True)
+        fail_key = f"login:fail:{email.lower()}"
+        lock_key = f"login:lock:{email.lower()}"
+
+        if await redis_client.exists(lock_key):
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Muitas tentativas. Tente novamente em alguns minutos.",
+            )
+    except HTTPException:
+        raise
+    except Exception:
+        redis_client = None  # If Redis is unreachable, fall through (don't block logins).
+
     result = await db.execute(select(User).where(User.email == email))
     user = result.scalar_one_or_none()
 
     if not user or not verify_password(password, user.hashed_password):
+        if redis_client is not None:
+            try:
+                fails = await redis_client.incr(fail_key)
+                if fails == 1:
+                    await redis_client.expire(fail_key, 300)  # 5 min window
+                if fails >= 8:
+                    await redis_client.set(lock_key, "1", ex=900)  # 15 min lockout
+            except Exception:
+                pass
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password",
@@ -83,6 +117,13 @@ async def authenticate_user(db: AsyncSession, email: str, password: str) -> User
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Account is deactivated",
         )
+
+    # Success → clear the failure counter
+    if redis_client is not None:
+        try:
+            await redis_client.delete(fail_key)
+        except Exception:
+            pass
 
     return user
 

@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/components/shared/Toast";
 import { useConfirm } from "@/components/shared/ConfirmModal";
 import apiClient from "@/api/client";
+import { avatarColor, avatarInitial } from "@/utils/avatar";
 
 export default function ProfilePage() {
   const { user, logout } = useAuth();
@@ -139,8 +140,12 @@ export default function ProfilePage() {
   return (
     <div className="profile-page">
       <div className="card profile-header">
-        <div className="profile-avatar">
-          {user?.username?.charAt(0).toUpperCase() || "P"}
+        <div
+          className="profile-avatar profile-avatar-colored"
+          style={{ "--avatar-ring": avatarColor(user?.username) } as React.CSSProperties}
+          aria-label={`Avatar de ${user?.username || "usuário"}`}
+        >
+          {avatarInitial(user?.username)}
         </div>
         <h1 className="profile-name">{user?.username}</h1>
         <p className="profile-email">{user?.email}</p>

@@ -853,6 +853,30 @@ html[data-theme="dark"] .legal-status-active {
   text-decoration: underline;
 }
 
+/* ===== Profile avatar colored ring ===== */
+.profile-avatar-colored {
+  position: relative;
+  box-shadow: 0 0 0 4px var(--avatar-ring, #FFD10D);
+}
+
+/* ===== Accessibility: respect reduced-motion preference ===== */
+@media (prefers-reduced-motion: reduce) {
+  .confirm-overlay,
+  .confirm-card,
+  .toast-container,
+  .app-footer,
+  .legal-page,
+  .palpite-save-bar,
+  .bet-type-card,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* ===== Skeleton loaders ===== */
 .skeleton {
   display: inline-block;

@@ -1,0 +1,38 @@
+# Pre-commit hooks. Install once:
+#   pipx install pre-commit  (or: pip install --user pre-commit)
+#   pre-commit install
+#
+# Then every `git commit` will lint staged files. Run manually on the
+# whole repo with: pre-commit run --all-files
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: \.svg$
+      - id: end-of-file-fixer
+        exclude: \.svg$
+      - id: check-merge-conflict
+      - id: check-yaml
+      - id: check-json
+        exclude: package-lock\.json|tsconfig.*\.json
+      - id: check-added-large-files
+        args: ["--maxkb=1024"]
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.9
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+        files: ^backend/
+      - id: ruff-format
+        files: ^backend/
+
+  - repo: local
+    hooks:
+      - id: eslint-frontend
+        name: eslint (frontend)
+        language: system
+        entry: bash -c 'cd frontend && (command -v npx >/dev/null && npx --no-install eslint --max-warnings 0 $(echo "$@" | sed "s|frontend/||g") || true)'
+        files: ^frontend/src/.*\.(ts|tsx|js|jsx)$
+        pass_filenames: true
