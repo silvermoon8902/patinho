@@ -2,6 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import type { BetResponse } from "@/store/betSlice";
 import { formatCurrency } from "@/utils/format";
+import { shareInvite } from "@/utils/share";
 
 const STATUS_LABELS: Record<string, string> = {
   open: "Aberta",
@@ -43,13 +44,15 @@ interface BetCardProps {
 }
 
 export default function BetCard({ bet }: BetCardProps) {
-  const handleShare = (e: React.MouseEvent) => {
+  const handleShare = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     const inviteUrl = `${window.location.origin}/invite/${bet.invite_token}`;
-    const message = `Você foi convidado para o desafio "${bet.title}" no Patinho!\n\nClique no link abaixo para ver as regras e participar:\n\n${inviteUrl}`;
-    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
-    window.open(url, "_blank", "noopener,noreferrer");
+    await shareInvite({
+      title: `Patinho · ${bet.title}`,
+      url: inviteUrl,
+      text: `Você foi convidado para o desafio "${bet.title}" no Patinho! Clique no link para ver as regras e participar:`,
+    });
   };
 
   return (

@@ -19,6 +19,7 @@ import ChatWindow from "@/components/chat/ChatWindow";
 import EmailInviteModal from "@/pages/bets/EmailInviteModal";
 import { useConfirm } from "@/components/shared/ConfirmModal";
 import { formatCurrency } from "@/utils/format";
+import { shareInvite, copyToClipboard } from "@/utils/share";
 
 const STATUS_LABELS: Record<string, string> = {
   open: "Aberta",
@@ -199,31 +200,22 @@ export default function BetDetailPage() {
     return `${window.location.origin}/invite/${currentBet.invite_token}`;
   };
 
-  const handleShareWhatsApp = () => {
+  const handleShareWhatsApp = async () => {
     if (!currentBet) return;
-    // URL must be on its own line (preceded by blank line) for WhatsApp auto-linkify
     const inviteUrl = getInviteUrl();
-    const message = `Você foi convidado para o desafio "${currentBet.title}" no Patinho!\n\nClique no link abaixo para ver as regras e participar:\n\n${inviteUrl}`;
-    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
-    window.open(url, "_blank", "noopener,noreferrer");
+    const text = `Você foi convidado para o desafio "${currentBet.title}" no Patinho! Clique no link para ver as regras e participar:`;
+    await shareInvite({
+      title: `Patinho · ${currentBet.title}`,
+      url: inviteUrl,
+      text,
+    });
   };
 
   const handleCopyInviteLink = async () => {
-    const url = getInviteUrl();
-    try {
-      await navigator.clipboard.writeText(url);
-      setLinkCopied(true);
-      setTimeout(() => setLinkCopied(false), 2000);
-    } catch {
-      const textarea = document.createElement("textarea");
-      textarea.value = url;
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand("copy");
-      document.body.removeChild(textarea);
-      setLinkCopied(true);
-      setTimeout(() => setLinkCopied(false), 2000);
-    }
+    const ok = await copyToClipboard(getInviteUrl());
+    if (!ok) return;
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 2000);
   };
 
   if (!currentBet) {
