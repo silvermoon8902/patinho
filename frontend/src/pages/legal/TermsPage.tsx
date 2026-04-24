@@ -23,7 +23,8 @@ export default function TermsPage() {
               <strong>Plataforma social entre amigos.</strong>
               <p>
                 O Patinho é um espaço de desafios sociais entre pessoas maiores
-                de 18 anos — não é uma casa de apostas tradicional.
+                de 18 anos, voltado ao entretenimento e à interação entre
+                grupos de amigos.
               </p>
             </div>
           </li>

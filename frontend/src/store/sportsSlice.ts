@@ -61,6 +61,7 @@ interface SportsState {
   fixturesLoading: boolean;
   fixturesError: string | null;
   fixturesLeagueId: string | null;
+  fixturesReason: FixturesReason | null;
 
   races: SportRace[];
   racesLoading: boolean;
@@ -90,6 +91,7 @@ const initialState: SportsState = {
   fixturesLoading: false,
   fixturesError: null,
   fixturesLeagueId: null,
+  fixturesReason: null,
 
   races: [],
   racesLoading: false,
@@ -127,6 +129,13 @@ interface FetchFixturesArgs {
   season?: number;
 }
 
+export type FixturesReason =
+  | "ok"
+  | "no_matches_scheduled"
+  | "unknown_league"
+  | "api_key_missing"
+  | "upstream_error";
+
 export const fetchFixtures = createAsyncThunk(
   "sports/fetchFixtures",
   async ({ leagueId, season }: FetchFixturesArgs, { rejectWithValue }) => {
@@ -135,9 +144,14 @@ export const fetchFixtures = createAsyncThunk(
       const response = await apiClient.get(
         `/sports/leagues/${leagueId}/fixtures${params}`
       );
+      const reason =
+        (response.headers?.["x-sports-reason"] as FixturesReason | undefined) ||
+        (response.headers?.["X-Sports-Reason"] as FixturesReason | undefined) ||
+        null;
       return {
         leagueId,
         fixtures: response.data as SportFixture[],
+        reason,
       };
     } catch (error: unknown) {
       return rejectWithValue(extractError(error, "Erro ao carregar partidas"));
@@ -249,6 +263,7 @@ const sportsSlice = createSlice({
       state.fixtures = [];
       state.fixturesLeagueId = null;
       state.fixturesError = null;
+      state.fixturesReason = null;
     },
     clearRaces(state) {
       state.races = [];
@@ -286,11 +301,13 @@ const sportsSlice = createSlice({
       state.fixturesLoading = true;
       state.fixturesError = null;
       state.fixturesLeagueId = action.meta.arg.leagueId;
+      state.fixturesReason = null;
     });
     builder.addCase(fetchFixtures.fulfilled, (state, action) => {
       state.fixturesLoading = false;
       state.fixtures = action.payload.fixtures;
       state.fixturesLeagueId = action.payload.leagueId;
+      state.fixturesReason = action.payload.reason ?? null;
     });
     builder.addCase(fetchFixtures.rejected, (state, action) => {
       state.fixturesLoading = false;

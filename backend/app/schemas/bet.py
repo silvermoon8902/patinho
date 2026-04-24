@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from decimal import Decimal
 
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 
 
 class BetCreate(BaseModel):
@@ -25,6 +25,19 @@ class BetCreate(BaseModel):
         if len(v) != len(set(v)):
             raise ValueError("Options must be unique")
         return v
+
+    @model_validator(mode="after")
+    def require_regulamento_on_voting(self) -> "BetCreate":
+        """Custom (voting) bets must carry a regulamento so invitees know the
+        rules they're accepting. Auto-resolution bets read their rules from
+        the sport fixture, so description stays optional there."""
+        if self.resolution_type == "voting":
+            desc = (self.description or "").strip()
+            if len(desc) < 20:
+                raise ValueError(
+                    "O regulamento do desafio é obrigatório e deve ter ao menos 20 caracteres."
+                )
+        return self
 
 
 class BetJoin(BaseModel):

@@ -1,3 +1,5 @@
+import uuid
+
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -47,6 +49,31 @@ async def create_deposit(
 ):
     payment = await payment_service.create_pix_deposit(db, user.id, body.amount)
     return payment
+
+
+@router.post("/deposit/{payment_id}/reconcile", response_model=WalletResponse)
+async def reconcile_deposit(
+    payment_id: uuid.UUID,
+    user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Check a specific Pix deposit against Mercado Pago and credit if paid.
+
+    Client-side safety net: when our webhook endpoint can't be reached from
+    MP (e.g. plain-HTTP VPS), the frontend polls this to pull status directly.
+    """
+    await payment_service.reconcile_payment(db, payment_id, user_id=user.id)
+    return await wallet_service.get_wallet(db, user.id)
+
+
+@router.post("/reconcile-pending", response_model=WalletResponse)
+async def reconcile_all_pending(
+    user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Reconcile every pending deposit for the authed user. Returns fresh wallet."""
+    await payment_service.reconcile_user_pending(db, user.id)
+    return await wallet_service.get_wallet(db, user.id)
 
 
 @router.post("/withdraw", response_model=WalletTransactionResponse)

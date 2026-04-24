@@ -1,4 +1,4 @@
-import { useState, useEffect, FormEvent } from "react";
+import { useState, useEffect, useRef, FormEvent } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import type { RootState, AppDispatch } from "@/store";
 import apiClient from "@/api/client";
@@ -7,8 +7,10 @@ import {
   createDeposit,
   fetchTransactions,
   clearDepositPayment,
+  reconcileDeposit,
 } from "@/store/walletSlice";
 import { formatCurrency } from "@/utils/format";
+import { useToast } from "@/components/shared/Toast";
 
 function formatDate(dateStr: string): string {
   return new Intl.DateTimeFormat("pt-BR", {
@@ -42,6 +44,10 @@ export default function WalletPage() {
   const [depositAmount, setDepositAmount] = useState("");
   const [copied, setCopied] = useState(false);
   const [paymentMode, setPaymentMode] = useState<string | null>(null);
+  const [checking, setChecking] = useState(false);
+  const { showToast } = useToast();
+  const pollRef = useRef<number | null>(null);
+  const pollStartRef = useRef<number | null>(null);
 
   useEffect(() => {
     dispatch(fetchWallet());
@@ -51,6 +57,75 @@ export default function WalletPage() {
       .then((r) => setPaymentMode(r.data?.mode || null))
       .catch(() => setPaymentMode(null));
   }, [dispatch]);
+
+  // Auto-poll reconcile every 5s while the Pix screen is up. Stops on
+  // approval, on timeout (5 min), or when the user leaves / clears.
+  useEffect(() => {
+    const paymentId = depositPayment?.id;
+    if (!paymentId) {
+      if (pollRef.current != null) {
+        window.clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
+      pollStartRef.current = null;
+      return;
+    }
+    pollStartRef.current = Date.now();
+    const id = window.setInterval(async () => {
+      const elapsed = Date.now() - (pollStartRef.current || Date.now());
+      if (elapsed > 5 * 60 * 1000) {
+        window.clearInterval(id);
+        pollRef.current = null;
+        return;
+      }
+      try {
+        const action = await dispatch(reconcileDeposit(paymentId));
+        if (reconcileDeposit.fulfilled.match(action)) {
+          const balance = Number(action.payload?.balance ?? 0);
+          const lastSeen = wallet?.balance;
+          if (lastSeen !== undefined && balance > lastSeen) {
+            showToast("Depósito confirmado!", "success");
+            dispatch(clearDepositPayment());
+            dispatch(fetchWallet());
+            dispatch(fetchTransactions(1));
+            window.clearInterval(id);
+            pollRef.current = null;
+          }
+        }
+      } catch {
+        /* keep polling — reconcile is idempotent and best-effort */
+      }
+    }, 5000);
+    pollRef.current = id;
+    return () => {
+      window.clearInterval(id);
+      pollRef.current = null;
+    };
+  }, [depositPayment?.id, dispatch, showToast, wallet?.balance]);
+
+  const handleManualCheck = async () => {
+    if (!depositPayment?.id || checking) return;
+    setChecking(true);
+    try {
+      const action = await dispatch(reconcileDeposit(depositPayment.id));
+      if (reconcileDeposit.fulfilled.match(action)) {
+        const newBalance = Number(action.payload?.balance ?? 0);
+        const oldBalance = Number(wallet?.balance ?? 0);
+        if (newBalance > oldBalance) {
+          showToast("Depósito confirmado!", "success");
+          dispatch(clearDepositPayment());
+          dispatch(fetchWallet());
+          dispatch(fetchTransactions(1));
+        } else {
+          showToast("Ainda não recebido — tente novamente em alguns instantes.", "info");
+        }
+      } else {
+        showToast("Não foi possível verificar agora.", "error");
+      }
+    } finally {
+      setChecking(false);
+    }
+  };
 
   const handleDeposit = (e: FormEvent) => {
     e.preventDefault();
@@ -156,6 +231,18 @@ export default function WalletPage() {
               </button>
             </div>
             <button
+              type="button"
+              className="btn btn-primary btn-full"
+              onClick={handleManualCheck}
+              disabled={checking}
+              style={{ marginBottom: "8px" }}
+            >
+              {checking ? "Verificando..." : "Já paguei — verificar agora"}
+            </button>
+            <p className="form-hint" style={{ textAlign: "center", marginBottom: "8px" }}>
+              Estamos conferindo automaticamente a cada 5 segundos.
+            </p>
+            <button
               className="btn btn-secondary btn-full"
               onClick={() => {
                 dispatch(clearDepositPayment());
@@ -163,7 +250,7 @@ export default function WalletPage() {
                 dispatch(fetchWallet());
               }}
             >
-              Fazer outro depósito
+              Cancelar e fazer outro depósito
             </button>
           </div>
         )}

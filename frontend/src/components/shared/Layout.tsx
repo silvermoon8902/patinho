@@ -67,15 +67,6 @@ export default function Layout() {
             <a href="/privacy" className="app-footer-link">{t("footer.privacy")}</a>
             <a href="/lgpd" className="app-footer-link">{t("footer.lgpd")}</a>
           </div>
-          <a
-            href="https://www.jogadoresanonimos.com.br/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="app-footer-help"
-          >
-            <span aria-hidden="true" className="app-footer-help-icon">♥</span>
-            {t("footer.responsible")}
-          </a>
           <p className="app-footer-brand">{t("footer.tagline")}</p>
         </footer>
       </main>

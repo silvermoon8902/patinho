@@ -212,9 +212,9 @@ export default function ProfilePage() {
       </div>
 
       <div className="card">
-        <h3>Limites mensais (jogo responsável)</h3>
+        <h3>Limites mensais</h3>
         <p className="form-hint">
-          Defina um teto para os seus próprios depósitos e apostas por mês. Deixe em branco ou 0 para remover o limite.
+          Controle quanto você pode depositar e comprometer em desafios por mês. Deixe em branco ou 0 para remover o limite.
         </p>
         <div className="form-group">
           <label htmlFor="depositCap">Limite de depósito (R$ / mês)</label>

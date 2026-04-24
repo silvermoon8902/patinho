@@ -17,15 +17,6 @@ import {
 } from "@/store/sportsSlice";
 import { fetchMyLeagues } from "@/store/leaguesSlice";
 
-const CATEGORIES = [
-  { value: "football", label: "Futebol" },
-  { value: "f1", label: "Fórmula 1" },
-  { value: "tennis", label: "Tênis" },
-  { value: "bbb", label: "BBB" },
-  { value: "politics", label: "Política" },
-  { value: "custom", label: "Outro" },
-];
-
 type BetFlow = "none" | "sport" | "custom";
 type SportKind = "football" | "f1" | "tennis";
 type TennisTour = "ATP" | "WTA" | "";
@@ -118,6 +109,7 @@ export default function CreateBetPage() {
     fixturesLoading,
     fixturesError,
     fixturesLeagueId,
+    fixturesReason,
     races,
     racesLoading,
     racesError,
@@ -137,14 +129,15 @@ export default function CreateBetPage() {
   const [flow, setFlow] = useState<BetFlow>("none");
   const [step, setStep] = useState(0);
 
-  // Custom flow state
+  // Custom flow state. Custom bets always use voting resolution (auto-resolution
+  // lives in the sport flow), and category is forced to "custom" so the category
+  // dropdown is unnecessary for invitees and for the creator.
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [category, setCategory] = useState("football");
+  const category = "custom";
   const [options, setOptions] = useState(["", ""]);
-  const [resolutionType, setResolutionType] = useState<"auto_api" | "voting">(
-    "voting"
-  );
+  const resolutionType: "voting" = "voting";
+  const MIN_DESCRIPTION = 20;
   const [entryAmountText, setEntryAmountText] = useState(String(MIN_ENTRY));
   const [maxParticipantsText, setMaxParticipantsText] = useState("100");
   const [closesAt, setClosesAt] = useState("");
@@ -375,7 +368,10 @@ export default function CreateBetPage() {
   const canAdvanceCustom = (): boolean => {
     switch (step) {
       case 0:
-        return title.trim().length >= 3;
+        return (
+          title.trim().length >= 3 &&
+          description.trim().length >= MIN_DESCRIPTION
+        );
       case 1:
         return options.filter((o) => o.trim().length > 0).length >= 2;
       case 2:
@@ -597,9 +593,6 @@ export default function CreateBetPage() {
   const handleSubmit = () =>
     flow === "sport" ? handleSubmitSport() : handleSubmitCustom();
 
-  const getCategoryLabel = (val: string) =>
-    CATEGORIES.find((c) => c.value === val)?.label || val;
-
   const formatCurrency = (val: number) =>
     `R$ ${val.toFixed(2).replace(".", ",")}`;
 
@@ -814,9 +807,16 @@ export default function CreateBetPage() {
               )}
               {!fixturesLoading &&
                 !fixturesError &&
-                fixtures.length === 0 && (
+                fixtures.length === 0 &&
+                selectedLeagueId && (
                   <div className="alert alert-info">
-                    Nenhuma partida futura encontrada para esta liga.
+                    {fixturesReason === "api_key_missing"
+                      ? "Integração esportiva ainda não configurada. Use desafio personalizado (votação) por enquanto."
+                      : fixturesReason === "upstream_error"
+                      ? "Não conseguimos consultar as partidas agora. Tente outra liga ou tente de novo em alguns instantes."
+                      : fixturesReason === "unknown_league"
+                      ? "Liga não reconhecida. Escolha outra opção na lista."
+                      : "Nenhuma partida agendada nesta liga. Tente outra liga ou crie um desafio personalizado."}
                   </div>
                 )}
               <div className="sport-fixture-list">
@@ -1266,29 +1266,28 @@ export default function CreateBetPage() {
             />
           </div>
           <div className="form-group">
-            <label>Descrição (opcional)</label>
+            <label>Regulamento do desafio</label>
             <textarea
               className="form-textarea"
-              placeholder="Descreva os detalhes do desafio..."
+              placeholder="Descreva as regras: como a vitória é definida, o que conta como empate, prazo, critérios de desempate, etc. Os convidados terão que aceitar esse regulamento antes de participar."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              rows={3}
-              maxLength={500}
+              rows={6}
+              maxLength={2000}
             />
-          </div>
-          <div className="form-group">
-            <label>Categoria</label>
-            <select
-              className="form-select"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-            >
-              {CATEGORIES.map((cat) => (
-                <option key={cat.value} value={cat.value}>
-                  {cat.label}
-                </option>
-              ))}
-            </select>
+            <span className="form-hint">
+              Obrigatório — mínimo {MIN_DESCRIPTION} caracteres. Escreva com
+              clareza: esse texto aparece para todos os convidados e é a base
+              da apuração por votação.
+              {description.trim().length > 0 &&
+                description.trim().length < MIN_DESCRIPTION && (
+                  <>
+                    {" "}
+                    Faltam {MIN_DESCRIPTION - description.trim().length}{" "}
+                    caracteres.
+                  </>
+                )}
+            </span>
           </div>
         </div>
       )}
@@ -1333,19 +1332,6 @@ export default function CreateBetPage() {
 
       {flow === "custom" && step === 2 && (
         <div className="create-bet-form card">
-          <div className="form-group">
-            <label>Tipo de resolução</label>
-            <select
-              className="form-select"
-              value={resolutionType}
-              onChange={(e) =>
-                setResolutionType(e.target.value as "auto_api" | "voting")
-              }
-            >
-              <option value="voting">Votação (Desafio Personalizado)</option>
-              <option value="auto_api">Automático (Previsão Esportiva)</option>
-            </select>
-          </div>
           <div className="form-group">
             <label>Valor de entrada</label>
             <div className="input-with-prefix">
@@ -1434,14 +1420,12 @@ export default function CreateBetPage() {
             </div>
             {description && (
               <div className="review-item">
-                <span className="review-label">Descrição</span>
-                <span className="review-value">{description}</span>
+                <span className="review-label">Regulamento</span>
+                <span className="review-value review-regulamento">
+                  {description}
+                </span>
               </div>
             )}
-            <div className="review-item">
-              <span className="review-label">Categoria</span>
-              <span className="review-value">{getCategoryLabel(category)}</span>
-            </div>
             <div className="review-item">
               <span className="review-label">Opções</span>
               <div className="review-options">

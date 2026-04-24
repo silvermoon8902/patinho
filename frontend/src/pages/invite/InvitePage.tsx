@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch, RootState } from "@/store";
 import { fetchBetByInvite, joinBet, clearBetError } from "@/store/betSlice";
+import { reconcilePending } from "@/store/walletSlice";
 import { formatCurrency } from "@/utils/format";
 import apiClient from "@/api/client";
 
@@ -44,6 +45,8 @@ export default function InvitePage() {
   const [pixCopied, setPixCopied] = useState(false);
   const [pixError, setPixError] = useState<string | null>(null);
   const [pixLoading, setPixLoading] = useState(false);
+  const [accepted, setAccepted] = useState(false);
+  const [reconciling, setReconciling] = useState(false);
 
   useEffect(() => {
     if (inviteToken) {
@@ -69,6 +72,22 @@ export default function InvitePage() {
     );
     if (joinBet.fulfilled.match(result)) {
       navigate(`/bets/${currentBet.id}`);
+    }
+  };
+
+  const handleReconcileAndRetry = async () => {
+    if (!currentBet || !selectedOption || reconciling) return;
+    setReconciling(true);
+    try {
+      await dispatch(reconcilePending());
+      const result = await dispatch(
+        joinBet({ betId: currentBet.id, optionId: selectedOption })
+      );
+      if (joinBet.fulfilled.match(result)) {
+        navigate(`/bets/${currentBet.id}`);
+      }
+    } finally {
+      setReconciling(false);
     }
   };
 
@@ -162,7 +181,10 @@ export default function InvitePage() {
           </div>
           <h2 className="invite-bet-title">{currentBet.title}</h2>
           {currentBet.description && (
-            <p className="invite-bet-desc">{currentBet.description}</p>
+            <div className="invite-regulamento">
+              <span className="invite-regulamento-label">Regulamento</span>
+              <p className="invite-regulamento-body">{currentBet.description}</p>
+            </div>
           )}
 
           <div className="invite-details">
@@ -302,20 +324,54 @@ export default function InvitePage() {
                 ))}
               </select>
             </div>
+
+            {/*
+              TODO (lawyer): replace this paragraph with the final liability text
+              Daniel's lawyer is drafting. Keep the acceptance checkbox wired so
+              the legal copy swap is a single string change.
+            */}
+            <div className="invite-terms">
+              <p className="invite-terms-body">
+                A Patinho é uma plataforma de desafios sociais entre amigos.
+                Não nos responsabilizamos por má-fé ou eventuais erros
+                operacionais dos participantes na apuração de resultados. Ao
+                participar, você aceita o regulamento acima e esses termos.
+              </p>
+              <label className="invite-terms-check">
+                <input
+                  type="checkbox"
+                  checked={accepted}
+                  onChange={(e) => setAccepted(e.target.checked)}
+                />
+                <span>Li e aceito o regulamento e os termos acima</span>
+              </label>
+            </div>
+
             <button
               className="btn btn-primary btn-full"
               onClick={handleJoinWithBalance}
-              disabled={!selectedOption || loading}
+              disabled={!selectedOption || !accepted || loading}
             >
               {loading
                 ? "Entrando..."
                 : `Usar saldo: ${formatCurrency(currentBet.entry_amount)}`}
             </button>
+            {error && /saldo insuficiente/i.test(error) && (
+              <button
+                type="button"
+                className="btn btn-secondary btn-full"
+                style={{ marginTop: "8px" }}
+                onClick={handleReconcileAndRetry}
+                disabled={!selectedOption || !accepted || reconciling}
+              >
+                {reconciling ? "Verificando depósitos..." : "Atualizar saldo e tentar de novo"}
+              </button>
+            )}
             <button
               className="btn btn-secondary btn-full"
               style={{ marginTop: "8px" }}
               onClick={handleDirectJoinPix}
-              disabled={!selectedOption || pixLoading}
+              disabled={!selectedOption || !accepted || pixLoading}
             >
               {pixLoading ? "Gerando Pix..." : "Pagar via Pix e participar"}
             </button>

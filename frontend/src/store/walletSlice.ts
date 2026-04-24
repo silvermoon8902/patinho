@@ -90,6 +90,44 @@ export const fetchTransactions = createAsyncThunk(
   }
 );
 
+/**
+ * Ask the backend to poll Mercado Pago for a specific deposit and credit
+ * the wallet if MP reports it approved. Webhook-independent — used when the
+ * VPS can't receive MP webhooks (HTTP/IP).
+ */
+export const reconcileDeposit = createAsyncThunk(
+  "wallet/reconcileDeposit",
+  async (paymentId: string, { rejectWithValue }) => {
+    try {
+      const response = await apiClient.post(
+        `/wallet/deposit/${paymentId}/reconcile`
+      );
+      return response.data as WalletResponse;
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { detail?: string } } };
+      return rejectWithValue(
+        err.response?.data?.detail || "Erro ao verificar pagamento"
+      );
+    }
+  }
+);
+
+/** Fallback: reconcile every pending deposit for the authed user at once. */
+export const reconcilePending = createAsyncThunk(
+  "wallet/reconcilePending",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await apiClient.post("/wallet/reconcile-pending");
+      return response.data as WalletResponse;
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { detail?: string } } };
+      return rejectWithValue(
+        err.response?.data?.detail || "Erro ao atualizar saldo"
+      );
+    }
+  }
+);
+
 const walletSlice = createSlice({
   name: "wallet",
   initialState,

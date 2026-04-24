@@ -32,6 +32,10 @@ celery_app.conf.update(
             "task": "app.tasks.payments.expire_pending_payments",
             "schedule": 900.0,  # every 15 minutes
         },
+        "reconcile_pending_payments": {
+            "task": "app.tasks.payments.reconcile_pending_payments",
+            "schedule": 60.0,  # every 1 minute — fallback when MP webhook can't reach us
+        },
         "lock_expired_bets": {
             "task": "app.tasks.betting.lock_expired_bets",
             "schedule": 60.0,  # every 1 minute

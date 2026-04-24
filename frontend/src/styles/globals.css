@@ -2734,6 +2734,71 @@ html[data-theme="dark"] .confirm-icon-danger {
   line-height: 1.4;
 }
 
+.invite-regulamento {
+  margin-top: 12px;
+  padding: 12px 14px;
+  background-color: var(--color-gray-100);
+  border-left: 3px solid var(--color-yellow);
+  border-radius: 8px;
+}
+
+.invite-regulamento-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-navy);
+  margin-bottom: 6px;
+}
+
+.invite-regulamento-body {
+  font-size: 0.92rem;
+  color: var(--color-navy);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  margin: 0;
+}
+
+.invite-terms {
+  margin: 12px 0;
+  padding: 12px 14px;
+  border: 1px solid var(--color-gray-200);
+  border-radius: 8px;
+  background-color: var(--color-white);
+}
+
+.invite-terms-body {
+  font-size: 0.85rem;
+  color: var(--color-gray-600);
+  line-height: 1.5;
+  margin: 0 0 10px 0;
+}
+
+.invite-terms-check {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--color-navy);
+  font-weight: 600;
+}
+
+.invite-terms-check input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  margin-top: 2px;
+  accent-color: var(--color-navy);
+  cursor: pointer;
+}
+
+.review-regulamento {
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
 .invite-details {
   display: flex;
   flex-direction: column;
@@ -3781,6 +3846,15 @@ html[data-theme="dark"] .confirm-icon-danger {
 .share-buttons {
   display: flex;
   gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Target only direct .btn children so the three share buttons wrap to
+   two-up on narrow phones (WhatsApp + Copiar link on row 1, Convidar por
+   email on row 2) and stay three-up on wider screens. */
+.share-section .share-buttons > .btn {
+  flex: 1 1 calc(50% - 5px);
+  min-width: 0;
 }
 
 .btn-whatsapp {

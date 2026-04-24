@@ -71,6 +71,109 @@ async def create_pix_deposit(
     return payment
 
 
+async def _apply_mp_status(
+    db: AsyncSession,
+    payment: Payment,
+    mp_data: dict,
+    webhook_data: dict | None = None,
+) -> bool:
+    """Advance a Payment row based on the freshest MP state. Idempotent.
+
+    Returns True when the payment transitioned to APPROVED in this call —
+    lets callers know the wallet was just credited.
+    """
+    if payment.status == PaymentStatus.APPROVED:
+        return False
+
+    mp_status = mp_data.get("status")
+    mp_payment_id = str(mp_data.get("id") or payment.mp_payment_id or "")
+
+    metadata = dict(payment.webhook_payload or {})
+    is_direct_join = metadata.get("direct_join") is True
+    if webhook_data is not None:
+        metadata["mp_webhook"] = webhook_data
+    metadata["mp_last_poll"] = {"status": mp_status, "id": mp_payment_id}
+    payment.webhook_payload = metadata
+
+    if mp_status == "approved":
+        payment.status = PaymentStatus.APPROVED
+        if mp_payment_id:
+            payment.mp_payment_id = mp_payment_id
+        if is_direct_join:
+            from app.services import direct_join_service
+            await direct_join_service.process_direct_join(db, payment.id)
+        else:
+            await wallet_service.credit_deposit(
+                db, payment.user_id, payment.amount, payment.id
+            )
+        await db.flush()
+        return True
+
+    if mp_status in ("rejected", "cancelled"):
+        payment.status = PaymentStatus.REJECTED
+        await db.flush()
+        return False
+
+    return False
+
+
+async def reconcile_payment(
+    db: AsyncSession,
+    payment_id: uuid.UUID,
+    user_id: uuid.UUID | None = None,
+) -> Payment:
+    """Pull fresh state from Mercado Pago and reconcile our Payment row.
+
+    Webhook-independent: used by the sync endpoint (when the user paid but the
+    webhook never arrived — common on HTTP/IP deploys that MP refuses to
+    notify) and by the Celery poller.
+    """
+    result = await db.execute(select(Payment).where(Payment.id == payment_id))
+    payment = result.scalar_one_or_none()
+    if not payment:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Pagamento não encontrado"
+        )
+    if user_id is not None and payment.user_id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Pagamento não pertence ao usuário"
+        )
+    if payment.status == PaymentStatus.APPROVED:
+        return payment
+    if not payment.mp_payment_id:
+        return payment
+    try:
+        mp_data = await mp_client.get_payment(payment.mp_payment_id)
+    except Exception:
+        logger.exception("reconcile_payment: MP get_payment failed for %s", payment.id)
+        return payment
+    await _apply_mp_status(db, payment, mp_data)
+    return payment
+
+
+async def reconcile_user_pending(db: AsyncSession, user_id: uuid.UUID) -> int:
+    """Reconcile every still-pending Payment for a user. Returns # approved."""
+    result = await db.execute(
+        select(Payment).where(
+            Payment.user_id == user_id,
+            Payment.status == PaymentStatus.PENDING,
+        )
+    )
+    rows = result.scalars().all()
+    approved = 0
+    for payment in rows:
+        if not payment.mp_payment_id:
+            continue
+        try:
+            mp_data = await mp_client.get_payment(payment.mp_payment_id)
+        except Exception:
+            logger.warning("reconcile_user_pending: MP lookup failed for %s", payment.id)
+            continue
+        if await _apply_mp_status(db, payment, mp_data):
+            approved += 1
+    return approved
+
+
 async def process_webhook(
     db: AsyncSession,
     webhook_data: dict,
@@ -97,58 +200,21 @@ async def process_webhook(
         logger.warning("Webhook missing payment ID")
         return
 
-    # Fetch payment details from MP
     mp_data = await mp_client.get_payment(mp_payment_id)
     external_reference = mp_data.get("external_reference")
-
     if not external_reference:
         logger.warning("MP payment %s has no external_reference", mp_payment_id)
         return
 
-    # Find our payment record
     result = await db.execute(
         select(Payment).where(Payment.mp_external_reference == external_reference)
     )
     payment = result.scalar_one_or_none()
-
     if not payment:
         logger.warning("No payment found for external_reference %s", external_reference)
         return
 
-    # Idempotency: skip if already processed
-    if payment.status == PaymentStatus.APPROVED:
-        logger.info("Payment %s already approved, skipping", payment.id)
-        return
-
-    mp_status = mp_data.get("status")
-
-    # Preserve direct_join metadata before overwriting with webhook data
-    metadata = dict(payment.webhook_payload or {})
-    is_direct_join = metadata.get("direct_join") is True
-
-    # Merge webhook data into payload without losing direct_join metadata
-    metadata["mp_webhook"] = webhook_data
-    payment.webhook_payload = metadata
-
-    if mp_status == "approved":
-        payment.status = PaymentStatus.APPROVED
-        payment.mp_payment_id = mp_payment_id
-        if is_direct_join:
-            # Direct join: credit + lock + create participation atomically
-            from app.services import direct_join_service
-            await direct_join_service.process_direct_join(db, payment.id)
-        else:
-            # Standard deposit: just credit the wallet
-            await wallet_service.credit_deposit(
-                db, payment.user_id, payment.amount, payment.id
-            )
-    elif mp_status in ("rejected", "cancelled"):
-        payment.status = PaymentStatus.REJECTED
-    else:
-        logger.info("Unhandled MP status %s for payment %s", mp_status, payment.id)
-        return
-
-    await db.flush()
+    await _apply_mp_status(db, payment, mp_data, webhook_data=webhook_data)
 
 
 async def expire_pending_payments(db: AsyncSession) -> int:

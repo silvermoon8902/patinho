@@ -39,6 +39,47 @@ async def _expire_payments_async() -> int:
             raise
 
 
+async def _reconcile_pending_async() -> int:
+    """Pull fresh status from MP for every still-pending payment, system-wide.
+
+    Safety net for deploys where MP webhooks cannot reach us (HTTP/IP hosts).
+    Hits the MP API for each pending Payment; idempotent.
+    """
+    from sqlalchemy import select
+
+    from app.database import async_session_maker
+    from app.integrations.mercado_pago import mp_client
+    from app.models.payment import Payment, PaymentStatus
+    from app.services import payment_service
+
+    approved = 0
+    async with async_session_maker() as db:
+        try:
+            rows = (
+                await db.execute(
+                    select(Payment).where(Payment.status == PaymentStatus.PENDING)
+                )
+            ).scalars().all()
+            for payment in rows:
+                if not payment.mp_payment_id:
+                    continue
+                try:
+                    mp_data = await mp_client.get_payment(payment.mp_payment_id)
+                except Exception:
+                    logger.warning(
+                        "reconcile_pending: MP lookup failed for %s", payment.id
+                    )
+                    continue
+                if await payment_service._apply_mp_status(db, payment, mp_data):
+                    approved += 1
+            await db.commit()
+        except Exception:
+            await db.rollback()
+            logger.exception("Error reconciling pending payments in Celery task")
+            raise
+    return approved
+
+
 @celery_app.task(name="app.tasks.payments.process_payment_webhook")
 def process_payment_webhook(payment_data: dict) -> None:
     """Process a Mercado Pago webhook notification asynchronously via Celery."""
@@ -50,4 +91,12 @@ def expire_pending_payments() -> int:
     """Expire pending payments past their expiration time. Called by Celery beat."""
     count = asyncio.run(_expire_payments_async())
     logger.info("Expired %d pending payments", count)
+    return count
+
+
+@celery_app.task(name="app.tasks.payments.reconcile_pending_payments")
+def reconcile_pending_payments() -> int:
+    """Reconcile every still-pending Payment against the MP API. Beat-driven."""
+    count = asyncio.run(_reconcile_pending_async())
+    logger.info("Reconciled %d pending payments (approved)", count)
     return count

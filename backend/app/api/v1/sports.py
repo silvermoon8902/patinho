@@ -1,8 +1,9 @@
 import logging
 from datetime import datetime
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Response
 
+from app.config import settings
 from app.integrations.api_f1 import api_f1_client
 from app.integrations.api_football import (
     SUPPORTED_LEAGUES,
@@ -42,18 +43,27 @@ async def list_leagues() -> list[LeagueResponse]:
 )
 async def list_league_fixtures(
     league_id: str,
+    response: Response,
     season: int = Query(default=2026, ge=2020, le=2099),
 ) -> list[FixtureResponse]:
     """
     List upcoming fixtures for the given league.
 
-    Gracefully returns [] when:
-      - the league is unknown
-      - the upstream API fails
-      - no upcoming fixtures are found
+    Always returns 200 with a (possibly empty) list so the bet-creation
+    wizard stays usable; communicates the *reason* for an empty list via
+    the `X-Sports-Reason` response header so the frontend can show a
+    specific message instead of a generic "no matches found".
+
+    Reasons: ok · unknown_league · api_key_missing · upstream_error ·
+             no_matches_scheduled
     """
     api_id = SUPPORTED_LEAGUES.get(league_id)
     if api_id is None:
+        response.headers["X-Sports-Reason"] = "unknown_league"
+        return []
+
+    if not (settings.API_FOOTBALL_KEY or "").strip():
+        response.headers["X-Sports-Reason"] = "api_key_missing"
         return []
 
     try:
@@ -66,6 +76,11 @@ async def list_league_fixtures(
             league_id,
             season,
         )
+        response.headers["X-Sports-Reason"] = "upstream_error"
+        return []
+
+    if not raw_fixtures:
+        response.headers["X-Sports-Reason"] = "no_matches_scheduled"
         return []
 
     fixtures: list[FixtureResponse] = []
@@ -96,6 +111,7 @@ async def list_league_fixtures(
             )
         )
 
+    response.headers["X-Sports-Reason"] = "ok" if fixtures else "no_matches_scheduled"
     return fixtures
 
 
