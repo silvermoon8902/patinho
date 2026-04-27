@@ -21,6 +21,9 @@ async def create_pix_deposit(
     # Velocity check: cap deposits per user per 24h to deter chargeback/fraud.
     # 10 deposit attempts per 24h and max R$ 5000/day total.
     from sqlalchemy import func
+
+    from app.models.user import User
+
     now = datetime.now(timezone.utc)
     window_start = now - timedelta(hours=24)
     daily_result = await db.execute(
@@ -48,12 +51,20 @@ async def create_pix_deposit(
             detail="Limite diário de depósitos (R$ 5.000) seria ultrapassado.",
         )
 
+    user = (
+        await db.execute(select(User).where(User.id == user_id))
+    ).scalar_one_or_none()
+
     external_reference = str(uuid.uuid4())
 
     mp_response = await mp_client.create_pix_payment(
         amount=amount,
         external_reference=external_reference,
         description="Patinho - Deposit",
+        payer_email=user.email if user else None,
+        payer_first_name=(user.username if user else None),
+        payer_last_name="Patinho",
+        payer_cpf=getattr(user, "cpf", None) if user else None,
     )
 
     payment = Payment(

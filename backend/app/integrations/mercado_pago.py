@@ -32,13 +32,29 @@ class MercadoPagoClient:
             "X-Idempotency-Key": None,  # set per-request
         }
 
+    @property
+    def is_sandbox(self) -> bool:
+        return (self.access_token or "").startswith("TEST-")
+
     async def create_pix_payment(
         self,
         amount: Decimal,
         external_reference: str,
         description: str,
+        payer_email: str | None = None,
+        payer_first_name: str | None = None,
+        payer_last_name: str | None = None,
+        payer_cpf: str | None = None,
     ) -> dict:
-        """Create a Pix payment via Mercado Pago API."""
+        """Create a Pix payment via Mercado Pago API.
+
+        MP rejects Pix payments when the payer block is missing
+        identification (CPF), or when payer.email collides with the
+        collector account. We forward the buyer's actual email/name and
+        their registered CPF. In sandbox we accept a documented test CPF
+        when the user has none on file; in live mode we refuse instead of
+        sending a fake document.
+        """
         if not self.access_token or self.access_token in ("", "TEST-xxx"):
             logger.warning("Mercado Pago not configured — returning mock payment")
             return {
@@ -49,13 +65,36 @@ class MercadoPagoClient:
                 "copy_paste": "MP_NOT_CONFIGURED",
             }
 
+        cpf_digits = "".join(c for c in (payer_cpf or "") if c.isdigit())
+        if not cpf_digits:
+            if self.is_sandbox:
+                # Documented sandbox-valid CPF used only with TEST-* tokens
+                # so live deposits never go out with a placeholder document.
+                cpf_digits = "19119119100"
+            else:
+                from fastapi import HTTPException, status as http_status
+
+                raise HTTPException(
+                    status_code=http_status.HTTP_400_BAD_REQUEST,
+                    detail=(
+                        "Cadastre seu CPF no perfil antes de depositar. "
+                        "O Mercado Pago exige CPF para pagamentos Pix."
+                    ),
+                )
+
         payload = {
             "transaction_amount": float(amount),
             "description": description,
             "payment_method_id": "pix",
             "external_reference": external_reference,
             "payer": {
-                "email": "customer@patinho.com",
+                "email": payer_email or "comprador@patinho.app",
+                "first_name": payer_first_name or "Comprador",
+                "last_name": payer_last_name or "Patinho",
+                "identification": {
+                    "type": "CPF",
+                    "number": cpf_digits,
+                },
             },
         }
 
