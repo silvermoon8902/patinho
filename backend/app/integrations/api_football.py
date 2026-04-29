@@ -133,14 +133,30 @@ class APIFootballClient:
             return []
 
         fixtures = data.get("response", [])
-        # Filter upcoming: status NS (Not Started), TBD (To Be Defined), PST (Postponed)
+        errors = data.get("errors") or {}
+        results_total = data.get("results")
+
+        # Tally statuses for diagnostics — when the upstream returns
+        # only finished matches we want to see that in the logs instead
+        # of silently returning [].
+        status_counts: dict[str, int] = {}
+        for f in fixtures:
+            s = (f.get("fixture", {}).get("status", {}) or {}).get("short") or "?"
+            status_counts[s] = status_counts.get(s, 0) + 1
+
         upcoming_statuses = {"NS", "TBD", "PST"}
         upcoming = [
             f for f in fixtures
             if f.get("fixture", {}).get("status", {}).get("short") in upcoming_statuses
         ]
-        # Sort by date ascending
         upcoming.sort(key=lambda f: f.get("fixture", {}).get("date") or "")
+
+        if not upcoming:
+            logger.warning(
+                "api-football empty result league=%s season=%s "
+                "upstream_total=%s upstream_errors=%s status_counts=%s",
+                league_id, season, results_total, errors, status_counts,
+            )
         return upcoming
 
     async def get_fixture_result(self, fixture_id: str) -> dict | None:
