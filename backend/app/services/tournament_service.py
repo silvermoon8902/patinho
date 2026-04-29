@@ -146,7 +146,7 @@ async def list_fixtures_for_bet(
     season = selector.get("api_season", 2026)
 
     try:
-        raw = await api_football_client.list_upcoming_fixtures(league_id, season)
+        raw, _tag = await api_football_client.list_upcoming_fixtures(league_id, season)
     except Exception:
         logger.exception("Failed to fetch tournament fixtures")
         raw = []

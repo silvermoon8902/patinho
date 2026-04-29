@@ -812,6 +812,10 @@ export default function CreateBetPage() {
                   <div className="alert alert-info">
                     {fixturesReason === "api_key_missing"
                       ? "Integração esportiva ainda não configurada. Use desafio personalizado (votação) por enquanto."
+                      : fixturesReason === "plan_limit"
+                      ? "A integração esportiva atual está em plano gratuito e não inclui esta temporada. Use desafio personalizado (votação) por enquanto, ou contrate um plano pago do provedor de dados."
+                      : fixturesReason === "all_finished"
+                      ? "Esta temporada já terminou — todas as partidas foram disputadas. Escolha outra liga ou crie um desafio personalizado."
                       : fixturesReason === "upstream_error"
                       ? "Não conseguimos consultar as partidas agora. Tente outra liga ou tente de novo em alguns instantes."
                       : fixturesReason === "unknown_league"

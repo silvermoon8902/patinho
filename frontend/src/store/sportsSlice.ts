@@ -134,7 +134,9 @@ export type FixturesReason =
   | "no_matches_scheduled"
   | "unknown_league"
   | "api_key_missing"
-  | "upstream_error";
+  | "upstream_error"
+  | "plan_limit"
+  | "all_finished";
 
 export const fetchFixtures = createAsyncThunk(
   "sports/fetchFixtures",

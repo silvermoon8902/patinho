@@ -78,6 +78,7 @@ def _make_bet(
     closes_at = (datetime.now(timezone.utc) + timedelta(days=3)).isoformat()
     body = {
         "title": title,
+        "description": "Regulamento de teste do desafio personalizado.",
         "category": "custom",
         "options": ["A", "B"],
         "resolution_type": "voting",

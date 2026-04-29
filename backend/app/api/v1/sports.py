@@ -67,7 +67,7 @@ async def list_league_fixtures(
         return []
 
     try:
-        raw_fixtures = await api_football_client.list_upcoming_fixtures(
+        raw_fixtures, tag = await api_football_client.list_upcoming_fixtures(
             api_id, season
         )
     except Exception:
@@ -80,7 +80,14 @@ async def list_league_fixtures(
         return []
 
     if not raw_fixtures:
-        response.headers["X-Sports-Reason"] = "no_matches_scheduled"
+        # tag distinguishes plan_limit / all_finished / empty / upstream_error
+        # so the frontend can show a specific message instead of a generic one.
+        response.headers["X-Sports-Reason"] = (
+            "plan_limit" if tag == "plan_limit"
+            else "all_finished" if tag == "all_finished"
+            else "upstream_error" if tag == "upstream_error"
+            else "no_matches_scheduled"
+        )
         return []
 
     fixtures: list[FixtureResponse] = []
