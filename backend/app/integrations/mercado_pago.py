@@ -36,6 +36,15 @@ class MercadoPagoClient:
     def is_sandbox(self) -> bool:
         return (self.access_token or "").startswith("TEST-")
 
+    @property
+    def is_simulated(self) -> bool:
+        """Skip real MP traffic and auto-approve mocked payments.
+
+        Set MERCADO_PAGO_SIMULATED=true in the env to unblock end-to-end
+        tests when MP credentials/configuration are still pending.
+        """
+        return bool(getattr(settings, "MERCADO_PAGO_SIMULATED", False))
+
     async def create_pix_payment(
         self,
         amount: Decimal,
@@ -55,14 +64,20 @@ class MercadoPagoClient:
         when the user has none on file; in live mode we refuse instead of
         sending a fake document.
         """
-        if not self.access_token or self.access_token in ("", "TEST-xxx"):
-            logger.warning("Mercado Pago not configured — returning mock payment")
+        if self.is_simulated or not self.access_token or self.access_token in ("", "TEST-xxx"):
+            mode = "simulated" if self.is_simulated else "unconfigured"
+            logger.info("Mercado Pago %s — returning mock Pix", mode)
+            # 1x1 transparent PNG as the "QR code" so the frontend renders
+            # something instead of a broken-image icon.
+            placeholder_png_b64 = (
+                "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkAAIAAAYAAfM7sUgAAAAASUVORK5CYII="
+            )
             return {
                 "id": f"mock-{external_reference[:8]}",
                 "status": "pending",
-                "qr_code": None,
-                "qr_code_base64": None,
-                "copy_paste": "MP_NOT_CONFIGURED",
+                "qr_code": "PATINHO-SIMULATED-PIX" if self.is_simulated else None,
+                "qr_code_base64": placeholder_png_b64 if self.is_simulated else None,
+                "copy_paste": "PATINHO-SIMULATED-PIX" if self.is_simulated else "MP_NOT_CONFIGURED",
             }
 
         cpf_digits = "".join(c for c in (payer_cpf or "") if c.isdigit())
@@ -137,6 +152,13 @@ class MercadoPagoClient:
 
     async def get_payment(self, payment_id: str) -> dict:
         """Fetch payment details from Mercado Pago."""
+        if self.is_simulated and (payment_id or "").startswith("mock-"):
+            logger.info("Mercado Pago simulated — auto-approving %s", payment_id)
+            return {
+                "id": payment_id,
+                "status": "approved",
+                "external_reference": payment_id.replace("mock-", "", 1),
+            }
         if not self.access_token or self.access_token in ("", "TEST-xxx"):
             logger.warning("Mercado Pago not configured — cannot fetch payment")
             return {"status": "pending", "external_reference": ""}

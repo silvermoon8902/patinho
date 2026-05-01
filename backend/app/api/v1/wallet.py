@@ -32,7 +32,9 @@ async def get_payment_mode(user: User = Depends(get_current_active_user)):
     from app.config import settings
 
     tok = settings.MERCADO_PAGO_ACCESS_TOKEN or ""
-    if tok.startswith("TEST-"):
+    if getattr(settings, "MERCADO_PAGO_SIMULATED", False):
+        mode = "simulated"
+    elif tok.startswith("TEST-"):
         mode = "test"
     elif tok:
         mode = "live"

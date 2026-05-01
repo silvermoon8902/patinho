@@ -17,6 +17,10 @@ class Settings(BaseSettings):
     MERCADO_PAGO_ACCESS_TOKEN: str = ""
     MERCADO_PAGO_WEBHOOK_SECRET: str = ""
     MERCADO_PAGO_PIX_KEY: str = ""
+    # When true, deposits skip MP entirely: a fake QR is rendered and the
+    # next reconcile call auto-approves. Used to unblock end-to-end tests
+    # while real MP credentials are pending. Never set in true production.
+    MERCADO_PAGO_SIMULATED: bool = False
 
     API_FOOTBALL_KEY: str = ""
 

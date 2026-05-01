@@ -179,6 +179,11 @@ export default function WalletPage() {
             Modo de teste — nenhuma transação real ocorre
           </div>
         )}
+        {paymentMode === "simulated" && (
+          <div className="payment-mode-badge">
+            Modo simulado — depósitos são creditados automaticamente em ~5s, sem Pix real
+          </div>
+        )}
         {paymentMode === "unconfigured" && (
           <div className="payment-mode-badge">
             Pagamentos ainda não configurados — depósitos indisponíveis
