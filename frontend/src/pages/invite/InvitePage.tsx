@@ -357,15 +357,31 @@ export default function InvitePage() {
                 : `Usar saldo: ${formatCurrency(currentBet.entry_amount)}`}
             </button>
             {error && /saldo insuficiente/i.test(error) && (
-              <button
-                type="button"
-                className="btn btn-secondary btn-full"
-                style={{ marginTop: "8px" }}
-                onClick={handleReconcileAndRetry}
-                disabled={!selectedOption || !accepted || reconciling}
-              >
-                {reconciling ? "Verificando depósitos..." : "Atualizar saldo e tentar de novo"}
-              </button>
+              <>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-full"
+                  style={{ marginTop: "8px" }}
+                  onClick={handleReconcileAndRetry}
+                  disabled={!selectedOption || !accepted || reconciling}
+                >
+                  {reconciling ? "Verificando depósitos..." : "Atualizar saldo e tentar de novo"}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-full"
+                  style={{ marginTop: "8px" }}
+                  onClick={() =>
+                    navigate(
+                      `/wallet?next=${encodeURIComponent(
+                        `/invite/${inviteToken}`
+                      )}`
+                    )
+                  }
+                >
+                  Carregar saldo (volta automaticamente para o convite)
+                </button>
+              </>
             )}
             <button
               className="btn btn-secondary btn-full"

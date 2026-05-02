@@ -19,7 +19,7 @@ import ChatWindow from "@/components/chat/ChatWindow";
 import EmailInviteModal from "@/pages/bets/EmailInviteModal";
 import { useConfirm } from "@/components/shared/ConfirmModal";
 import { formatCurrency } from "@/utils/format";
-import { shareInvite, copyToClipboard } from "@/utils/share";
+import { shareInvite, copyToClipboard, getShortInviteUrl } from "@/utils/share";
 
 const STATUS_LABELS: Record<string, string> = {
   open: "Aberta",
@@ -207,12 +207,17 @@ export default function BetDetailPage() {
     await shareInvite({
       title: `Patinho · ${currentBet.title}`,
       url: inviteUrl,
+      inviteToken: currentBet.invite_token,
       text,
     });
   };
 
   const handleCopyInviteLink = async () => {
-    const ok = await copyToClipboard(getInviteUrl());
+    if (!currentBet) return;
+    // Copy the short HTTPS URL when we can — that's what makes the link
+    // clickable in the recipient's WhatsApp instead of plain text.
+    const url = await getShortInviteUrl(currentBet.invite_token, getInviteUrl());
+    const ok = await copyToClipboard(url);
     if (!ok) return;
     setLinkCopied(true);
     setTimeout(() => setLinkCopied(false), 2000);

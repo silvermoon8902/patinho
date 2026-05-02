@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, FormEvent } from "react";
 import { useSelector, useDispatch } from "react-redux";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import type { RootState, AppDispatch } from "@/store";
 import apiClient from "@/api/client";
 import {
@@ -48,6 +49,13 @@ export default function WalletPage() {
   const { showToast } = useToast();
   const pollRef = useRef<number | null>(null);
   const pollStartRef = useRef<number | null>(null);
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  // After a successful deposit, resume an interrupted journey (e.g. an
+  // invite the user came from). Only accept absolute paths so external
+  // open redirects can't piggyback on this param.
+  const rawNext = searchParams.get("next") || "";
+  const nextPath = rawNext.startsWith("/") ? rawNext : "";
 
   useEffect(() => {
     dispatch(fetchWallet());
@@ -90,6 +98,7 @@ export default function WalletPage() {
             dispatch(fetchTransactions(1));
             window.clearInterval(id);
             pollRef.current = null;
+            if (nextPath) navigate(nextPath, { replace: true });
           }
         }
       } catch {
@@ -101,7 +110,7 @@ export default function WalletPage() {
       window.clearInterval(id);
       pollRef.current = null;
     };
-  }, [depositPayment?.id, dispatch, showToast, wallet?.balance]);
+  }, [depositPayment?.id, dispatch, showToast, wallet?.balance, nextPath, navigate]);
 
   const handleManualCheck = async () => {
     if (!depositPayment?.id || checking) return;
@@ -116,6 +125,7 @@ export default function WalletPage() {
           dispatch(clearDepositPayment());
           dispatch(fetchWallet());
           dispatch(fetchTransactions(1));
+          if (nextPath) navigate(nextPath, { replace: true });
         } else {
           showToast("Ainda não recebido — tente novamente em alguns instantes.", "info");
         }

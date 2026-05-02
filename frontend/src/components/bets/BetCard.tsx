@@ -51,6 +51,7 @@ export default function BetCard({ bet }: BetCardProps) {
     await shareInvite({
       title: `Patinho · ${bet.title}`,
       url: inviteUrl,
+      inviteToken: bet.invite_token,
       text: `Você foi convidado para o desafio "${bet.title}" no Patinho! Clique no link para ver as regras e participar:`,
     });
   };
