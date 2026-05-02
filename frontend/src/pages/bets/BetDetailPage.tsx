@@ -438,14 +438,18 @@ export default function BetDetailPage() {
             </div>
           )}
 
-          {/* Pending confirmation - creator declares winner */}
-          {currentBet.status === "pending_confirmation" &&
+          {/* Locked or pending confirmation - creator declares winner */}
+          {(currentBet.status === "locked" ||
+            currentBet.status === "pending_confirmation") &&
             isCreator &&
+            currentBet.resolution_type === "voting" &&
             !currentBet.declared_winner_option_id && (
               <div className="bet-declare-winner card">
                 <h3>Declarar vencedor</h3>
                 <p className="form-hint">
-                  Como criador do desafio, escolha a opcao vencedora.
+                  O prazo do desafio acabou. Como criador, escolha a opção
+                  vencedora — os participantes terão 24 horas para aceitar
+                  ou contestar antes do pagamento ser liberado.
                 </p>
                 <div className="form-group">
                   {(currentBet.options || []).map((opt) => (
@@ -468,6 +472,21 @@ export default function BetDetailPage() {
                 >
                   {loading ? "Confirmando..." : "Confirmar vencedor"}
                 </button>
+              </div>
+            )}
+
+          {/* Locked, awaiting creator to declare (participant view) */}
+          {currentBet.status === "locked" &&
+            !isCreator &&
+            currentBet.resolution_type === "voting" && (
+              <div className="bet-declared-result card">
+                <h3>Aguardando o criador declarar o vencedor</h3>
+                <p className="form-hint">
+                  O prazo do desafio acabou. O criador agora precisa
+                  escolher a opção vencedora. Quando isso acontecer, você
+                  terá 24 horas para aceitar ou contestar antes do
+                  pagamento ser liberado.
+                </p>
               </div>
             )}
 
