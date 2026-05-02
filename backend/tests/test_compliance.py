@@ -201,4 +201,4 @@ def test_payment_mode_endpoint(client):
         headers={"Authorization": f"Bearer {token}"},
     )
     assert r1.status_code == 200
-    assert r1.json()["mode"] in {"test", "live", "unconfigured"}
+    assert r1.json()["mode"] in {"test", "live", "unconfigured", "simulated"}

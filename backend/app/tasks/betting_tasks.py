@@ -69,3 +69,66 @@ async def _lock_expired_bets_async() -> int:
 def lock_expired_bets() -> int:
     """Celery beat task: lock expired open bets or start voting."""
     return asyncio.run(_lock_expired_bets_async())
+
+
+# Voting bets that the creator never declares should not trap participant
+# funds forever. After this many days in LOCKED with no declared winner
+# we cancel the bet and refund every participant (creator included).
+STALE_LOCK_REFUND_DAYS = 7
+
+
+async def _refund_stale_locked_bets_async() -> int:
+    """Auto-cancel + refund voting bets stuck in LOCKED for too long.
+
+    Safety net for the case where the bet creator disappears, gets sick,
+    or simply forgets to declare the winner — without this, participant
+    funds stay frozen indefinitely. No admin fee is charged.
+    """
+    from datetime import timedelta
+
+    from sqlalchemy import select
+
+    from app.database import async_session_maker
+    from app.models.bet import Bet, BetStatus, ResolutionType
+    from app.services import dispute_service
+
+    cutoff = datetime.now(timezone.utc) - timedelta(days=STALE_LOCK_REFUND_DAYS)
+    refunded = 0
+    async with async_session_maker() as db:
+        try:
+            rows = (
+                await db.execute(
+                    select(Bet).where(
+                        Bet.status == BetStatus.LOCKED,
+                        Bet.resolution_type == ResolutionType.VOTING,
+                        Bet.declared_winner_option_id.is_(None),
+                        Bet.closes_at <= cutoff,
+                    )
+                )
+            ).scalars().all()
+            for bet in rows:
+                try:
+                    await dispute_service.refund_all(db, bet.id)
+                    refunded += 1
+                    logger.warning(
+                        "Auto-cancelled stale locked bet %s "
+                        "(creator never declared after %d days)",
+                        bet.id, STALE_LOCK_REFUND_DAYS,
+                    )
+                except Exception:
+                    logger.exception(
+                        "Error auto-cancelling stale locked bet %s", bet.id
+                    )
+                    continue
+            await db.commit()
+        except Exception:
+            await db.rollback()
+            logger.exception("Error in refund_stale_locked_bets task")
+            raise
+    return refunded
+
+
+@celery_app.task(name="app.tasks.betting.refund_stale_locked_bets")
+def refund_stale_locked_bets() -> int:
+    """Celery beat task: refund participants of stale locked voting bets."""
+    return asyncio.run(_refund_stale_locked_bets_async())

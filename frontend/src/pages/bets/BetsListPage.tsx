@@ -10,7 +10,11 @@ import EmptyState from "@/components/shared/EmptyState";
 type TabFilter = "active" | "resolved" | "all";
 
 const TAB_STATUS_MAP: Record<TabFilter, string | undefined> = {
-  active: "open",
+  // "active" is a backend pseudo-filter that matches open / locked /
+  // pending_confirmation / voting / disputed — i.e. anything still
+  // moving. Keeps locked bets visible to the creator who needs to
+  // declare a winner.
+  active: "active",
   resolved: "resolved",
   all: undefined,
 };

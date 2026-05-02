@@ -498,14 +498,29 @@ async def get_user_bets(
     )
 
     if status_filter:
-        try:
-            bet_status = BetStatus(status_filter)
-            query = query.where(Bet.status == bet_status)
-        except ValueError:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid status filter: {status_filter}",
+        # Pseudo-filter "active" matches every status that still requires
+        # *someone's* attention (creator declaration, participant accept,
+        # voting). The "Ativas" tab on the frontend uses this so creators
+        # don't lose track of locked bets waiting on them.
+        if status_filter == "active":
+            query = query.where(
+                Bet.status.in_([
+                    BetStatus.OPEN,
+                    BetStatus.LOCKED,
+                    BetStatus.PENDING_CONFIRMATION,
+                    BetStatus.VOTING,
+                    BetStatus.DISPUTED,
+                ])
             )
+        else:
+            try:
+                bet_status = BetStatus(status_filter)
+                query = query.where(Bet.status == bet_status)
+            except ValueError:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Invalid status filter: {status_filter}",
+                )
 
     result = await db.execute(query)
     return list(result.scalars().all())

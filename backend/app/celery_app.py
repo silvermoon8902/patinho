@@ -40,6 +40,10 @@ celery_app.conf.update(
             "task": "app.tasks.betting.lock_expired_bets",
             "schedule": 60.0,  # every 1 minute
         },
+        "refund_stale_locked_bets": {
+            "task": "app.tasks.betting.refund_stale_locked_bets",
+            "schedule": crontab(minute="0", hour="3"),  # daily 03:00
+        },
         "auto_resolve_pending_confirmations": {
             "task": "app.tasks.confirmation.auto_resolve_pending_confirmations",
             "schedule": 600.0,  # every 10 minutes

@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch, RootState } from "@/store";
 import { fetchBetByInvite, joinBet, clearBetError } from "@/store/betSlice";
-import { reconcilePending } from "@/store/walletSlice";
+import { fetchWallet, reconcilePending } from "@/store/walletSlice";
 import { formatCurrency } from "@/utils/format";
 import apiClient from "@/api/client";
 
@@ -38,6 +38,7 @@ export default function InvitePage() {
     (state: RootState) => state.bets
   );
   const { accessToken, user } = useSelector((state: RootState) => state.auth);
+  const { wallet } = useSelector((state: RootState) => state.wallet);
   const isAuthenticated = !!accessToken;
 
   const [selectedOption, setSelectedOption] = useState("");
@@ -56,6 +57,12 @@ export default function InvitePage() {
       dispatch(clearBetError());
     };
   }, [dispatch, inviteToken]);
+
+  // Pull wallet whenever the user is authed so we can show the proactive
+  // "Carregar saldo" CTA below before the user even tries to join.
+  useEffect(() => {
+    if (isAuthenticated) dispatch(fetchWallet());
+  }, [dispatch, isAuthenticated]);
 
   const handleRegisterRedirect = () => {
     navigate(`/register?redirect=/invite/${inviteToken}`);
@@ -309,6 +316,20 @@ export default function InvitePage() {
                 {formatCurrency(currentBet.entry_amount)}
               </span>
             </div>
+            {wallet &&
+              Number(wallet.balance) < Number(currentBet.entry_amount) && (
+                <div
+                  className="alert alert-info"
+                  style={{ marginBottom: "12px" }}
+                >
+                  Saldo atual: {formatCurrency(wallet.balance)}. Faltam{" "}
+                  {formatCurrency(
+                    Number(currentBet.entry_amount) - Number(wallet.balance)
+                  )}{" "}
+                  para participar usando saldo. Você pode pagar diretamente
+                  via Pix abaixo, ou carregar saldo primeiro.
+                </div>
+              )}
             <div className="form-group">
               <label>Escolha uma opção</label>
               <select
@@ -356,6 +377,23 @@ export default function InvitePage() {
                 ? "Entrando..."
                 : `Usar saldo: ${formatCurrency(currentBet.entry_amount)}`}
             </button>
+            {wallet &&
+              Number(wallet.balance) < Number(currentBet.entry_amount) && (
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-full"
+                  style={{ marginTop: "8px" }}
+                  onClick={() =>
+                    navigate(
+                      `/wallet?next=${encodeURIComponent(
+                        `/invite/${inviteToken}`
+                      )}`
+                    )
+                  }
+                >
+                  Carregar saldo (volta automaticamente para o convite)
+                </button>
+              )}
             {error && /saldo insuficiente/i.test(error) && (
               <>
                 <button
