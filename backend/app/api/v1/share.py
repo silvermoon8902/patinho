@@ -3,8 +3,9 @@ Invite-link shortener.
 
 WhatsApp's anti-phishing refuses to auto-linkify raw IPv4 URLs over plain
 HTTP (e.g. http://187.127.25.239/invite/abc), so the message arrives as
-plain text. While the deployment is on a bare IP, we proxy through is.gd
-to get an HTTPS short URL that WhatsApp DOES linkify.
+plain text. While the deployment is on a bare IP, we proxy through
+TinyURL to get an HTTPS short URL that WhatsApp DOES linkify. (is.gd was
+the first choice but blocks IP-host shortening as anti-abuse.)
 
 Once the app moves to a real HTTPS domain this endpoint becomes redundant
 and can be retired (or kept as a vanity shortener).
@@ -40,22 +41,25 @@ async def _get_redis() -> Redis:
 
 
 async def _shorten(long_url: str) -> str | None:
-    """Hit is.gd's free shortener. ~50ms typical, hard 5s timeout."""
+    """Call TinyURL's free shortener (no auth needed). ~150ms typical."""
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
             resp = await client.get(
-                "https://is.gd/create.php",
-                params={"format": "simple", "url": long_url},
+                "https://tinyurl.com/api-create.php",
+                params={"url": long_url},
             )
         if resp.status_code != 200:
-            logger.warning("is.gd shorten failed: %s %s", resp.status_code, resp.text[:80])
+            logger.warning(
+                "tinyurl shorten failed: %s %s", resp.status_code, resp.text[:80]
+            )
             return None
         text = (resp.text or "").strip()
-        if not text.startswith("https://"):
+        if not text.startswith("https://tinyurl.com/"):
+            logger.warning("tinyurl returned unexpected body: %s", text[:120])
             return None
         return text
     except Exception:
-        logger.exception("is.gd shorten exception")
+        logger.exception("tinyurl shorten exception")
         return None
 
 
