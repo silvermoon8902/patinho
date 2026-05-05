@@ -41,6 +41,20 @@ async def dashboard(
     return await admin_service.get_dashboard_stats(db)
 
 
+@router.post("/tasks/run-lock-expired")
+async def run_lock_expired_now(
+    admin: User = Depends(get_admin_user),
+):
+    """Manually trigger the lock_expired_bets task from the API.
+
+    Used to diagnose whether the celery_beat scheduler is what's stuck.
+    Returns the count of bets locked.
+    """
+    from app.tasks.betting_tasks import _lock_expired_bets_async
+    count = await _lock_expired_bets_async()
+    return {"locked": count}
+
+
 @router.get("/funnel")
 async def funnel(
     admin: User = Depends(get_admin_user),
