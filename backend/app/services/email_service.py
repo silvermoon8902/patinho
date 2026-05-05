@@ -154,6 +154,90 @@ Acesse o link abaixo para ver as regras e participar:
     return html, text
 
 
+def render_bet_locked_creator(
+    creator_name: str,
+    bet_title: str,
+    bet_url: str,
+) -> tuple[str, str]:
+    """Sent to the creator when their voting bet hits closes_at.
+
+    The bet is now in LOCKED state and waits for the creator to declare
+    the winner. Without a reminder, creators miss the transition and
+    funds stay frozen until our 7-day safety net cancels the bet.
+    """
+    reason = (
+        "Você recebeu este e-mail porque o prazo de um desafio que você "
+        "criou no Patinho terminou e está aguardando sua decisão."
+    )
+    html = f"""<!DOCTYPE html>
+<html lang="pt-BR"><body style="font-family:Arial,sans-serif;background:#f5f5f5;padding:20px;margin:0;">
+<div style="max-width:480px;margin:0 auto;background:white;padding:32px;border-radius:12px;">
+<h1 style="color:#001F3F;margin:0 0 8px;">Patinho</h1>
+<h2 style="color:#001F3F;margin:0 0 16px;">Hora de declarar o vencedor</h2>
+<p style="color:#333;">Olá, {creator_name}!</p>
+<p style="color:#333;">O prazo do desafio abaixo terminou. Como criador, você precisa escolher a opção vencedora para que os participantes possam aceitar ou contestar o resultado:</p>
+<h3 style="background:#001F3F;color:#FFD10D;padding:12px;border-radius:8px;margin:16px 0;">{bet_title}</h3>
+<p style="text-align:center;margin:32px 0;">
+<a href="{bet_url}" style="background:#FFD10D;color:#001F3F;padding:14px 28px;text-decoration:none;border-radius:8px;font-weight:bold;display:inline-block;">Declarar vencedor</a>
+</p>
+<p style="color:#6b7280;font-size:14px;">Se você não declarar nos próximos 7 dias, o desafio será cancelado automaticamente e todos os participantes receberão reembolso.</p>
+</div>
+{_footer_html(reason)}
+</body></html>"""
+    text = f"""Olá, {creator_name}!
+
+O prazo do desafio "{bet_title}" terminou. Como criador, você precisa escolher a opção vencedora.
+
+Acesse: {bet_url}
+
+Se não declarar em 7 dias, o desafio será cancelado e todos receberão reembolso.
+{_footer_text(reason)}
+"""
+    return html, text
+
+
+def render_winner_declared_participant(
+    name: str,
+    bet_title: str,
+    winner_label: str,
+    bet_url: str,
+) -> tuple[str, str]:
+    """Sent to non-creator participants after creator declares the winner.
+
+    Recipients have 24h to accept or contest before auto-resolution.
+    """
+    reason = (
+        "Você recebeu este e-mail porque participa de um desafio no Patinho "
+        "cujo vencedor acaba de ser declarado pelo criador."
+    )
+    html = f"""<!DOCTYPE html>
+<html lang="pt-BR"><body style="font-family:Arial,sans-serif;background:#f5f5f5;padding:20px;margin:0;">
+<div style="max-width:480px;margin:0 auto;background:white;padding:32px;border-radius:12px;">
+<h1 style="color:#001F3F;margin:0 0 8px;">Patinho</h1>
+<h2 style="color:#001F3F;margin:0 0 16px;">Resultado declarado</h2>
+<p style="color:#333;">Olá, {name}!</p>
+<p style="color:#333;">O criador do desafio abaixo declarou o vencedor. Você tem <strong>24 horas</strong> para aceitar ou contestar antes que o pagamento seja liberado:</p>
+<h3 style="background:#001F3F;color:#FFD10D;padding:12px;border-radius:8px;margin:16px 0;">{bet_title}</h3>
+<p style="color:#333;">Opção vencedora declarada: <strong>{winner_label}</strong></p>
+<p style="text-align:center;margin:32px 0;">
+<a href="{bet_url}" style="background:#FFD10D;color:#001F3F;padding:14px 28px;text-decoration:none;border-radius:8px;font-weight:bold;display:inline-block;">Ver desafio e responder</a>
+</p>
+<p style="color:#6b7280;font-size:14px;">Se você não responder em 24h, o resultado é considerado aceito e o pagamento é distribuído.</p>
+</div>
+{_footer_html(reason)}
+</body></html>"""
+    text = f"""Olá, {name}!
+
+O criador do desafio "{bet_title}" declarou que a opção vencedora é "{winner_label}".
+
+Você tem 24 horas para aceitar ou contestar: {bet_url}
+
+Se não responder, o resultado é considerado aceito.
+{_footer_text(reason)}
+"""
+    return html, text
+
+
 def render_prize_won(name: str, bet_title: str, amount: str, bet_url: str) -> tuple[str, str]:
     reason = "Você recebeu este e-mail porque ganhou um prêmio em um desafio que você participou no Patinho."
     html = f"""<!DOCTYPE html>

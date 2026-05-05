@@ -41,6 +41,77 @@ async def dashboard(
     return await admin_service.get_dashboard_stats(db)
 
 
+@router.get("/funnel")
+async def funnel(
+    admin: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Aggregate user-journey counts so we can see where users drop off.
+
+    Each step is a SQL count of distinct users that reached that stage.
+    Cheap to compute and lives off existing tables — no new schema.
+    """
+    from sqlalchemy import func, select
+
+    from app.models.bet import Bet
+    from app.models.participation import Participation
+    from app.models.payment import Payment, PaymentStatus
+
+    total_users = (
+        await db.execute(select(func.count(User.id)))
+    ).scalar() or 0
+    users_initiated_deposit = (
+        await db.execute(select(func.count(func.distinct(Payment.user_id))))
+    ).scalar() or 0
+    users_approved_deposit = (
+        await db.execute(
+            select(func.count(func.distinct(Payment.user_id))).where(
+                Payment.status == PaymentStatus.APPROVED
+            )
+        )
+    ).scalar() or 0
+    users_joined_bet = (
+        await db.execute(
+            select(func.count(func.distinct(Participation.user_id)))
+        )
+    ).scalar() or 0
+    users_created_bet = (
+        await db.execute(
+            select(func.count(func.distinct(Bet.creator_id)))
+        )
+    ).scalar() or 0
+
+    def pct(n: int) -> float:
+        return round(100.0 * n / total_users, 1) if total_users else 0.0
+
+    return {
+        "total_users": total_users,
+        "steps": [
+            {"step": "registered", "users": total_users, "pct": 100.0},
+            {
+                "step": "initiated_deposit",
+                "users": users_initiated_deposit,
+                "pct": pct(users_initiated_deposit),
+            },
+            {
+                "step": "approved_deposit",
+                "users": users_approved_deposit,
+                "pct": pct(users_approved_deposit),
+            },
+            {
+                "step": "joined_any_bet",
+                "users": users_joined_bet,
+                "pct": pct(users_joined_bet),
+            },
+            {
+                "step": "created_any_bet",
+                "users": users_created_bet,
+                "pct": pct(users_created_bet),
+            },
+        ],
+    }
+
+
 @router.get("/users")
 async def list_users(
     skip: int = Query(0, ge=0),

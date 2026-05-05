@@ -87,6 +87,18 @@ async def get_invite_short_url(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_active_user),
 ):
+    from app.utils.rate_limit import enforce_user_rate_limit
+
+    # Cap how often a single user can ask us to mint short URLs. Cached
+    # hits are unaffected because the cache check happens after this
+    # gate; the gate itself just prevents flooding TinyURL.
+    await enforce_user_rate_limit(
+        user.id,
+        bucket="share_short_url",
+        limit=60,
+        window_seconds=3600,
+        detail="Muitas requisições de compartilhamento. Aguarde alguns minutos.",
+    )
     """Return an HTTPS short URL for the given bet invite.
 
     Cached per invite_token for 30 days (is.gd links don't expire).

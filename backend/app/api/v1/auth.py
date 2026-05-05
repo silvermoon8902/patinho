@@ -46,6 +46,8 @@ async def register(
     user = await register_user(db, user_data)
     tokens = generate_tokens(user)
     background.add_task(send_welcome_email, user)
+    from app.utils import funnel
+    funnel.track("user_registered", user_id=user.id)
     return tokens
 
 

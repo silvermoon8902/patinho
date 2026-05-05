@@ -118,6 +118,17 @@ async def _apply_mp_status(
                 db, payment.user_id, payment.amount, payment.id
             )
         await db.flush()
+        try:
+            from app.utils import funnel
+            funnel.track(
+                "deposit_approved",
+                user_id=payment.user_id,
+                amount=str(payment.amount),
+                payment_id=str(payment.id),
+                direct_join=is_direct_join,
+            )
+        except Exception:
+            pass
         return True
 
     if mp_status in ("rejected", "cancelled"):

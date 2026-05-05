@@ -102,7 +102,27 @@ async def create_bet(
     user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
 ):
+    # Per-user rate limit: 15 bets/hour. Stops accidental loops and
+    # outright spam without affecting normal use (5–10/day).
+    from app.utils.rate_limit import enforce_user_rate_limit
+
+    await enforce_user_rate_limit(
+        user.id,
+        bucket="create_bet",
+        limit=15,
+        window_seconds=3600,
+        detail="Você criou muitos desafios em pouco tempo. Tente novamente em uma hora.",
+    )
     bet = await bet_service.create_bet(db, user.id, data)
+    from app.utils import funnel
+    funnel.track(
+        "bet_created",
+        user_id=user.id,
+        bet_id=str(bet.id),
+        category=data.category,
+        resolution_type=data.resolution_type,
+        entry_amount=str(data.entry_amount),
+    )
     return _build_bet_response(bet)
 
 
@@ -389,6 +409,8 @@ async def join_bet(
     bet = await bet_service.get_bet(db, bet_id)
     await league_service.require_bet_access(db, bet, user.id)
     participation = await bet_service.join_bet(db, user.id, bet_id, data)
+    from app.utils import funnel
+    funnel.track("bet_joined", user_id=user.id, bet_id=str(bet_id))
     return ParticipationResponse(
         id=participation.id,
         user_id=participation.user_id,

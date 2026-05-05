@@ -63,7 +63,52 @@ async def declare_winner(
         winning_option_id,
         bet_id,
     )
+    # Best-effort email to each non-creator participant so they know they
+    # have 24h to accept or contest. Failures are swallowed — the in-app
+    # banner is the primary signal.
+    try:
+        await _notify_participants_winner_declared(db, bet, option.label)
+    except Exception:
+        logger.exception(
+            "Failed to send winner-declared notifications for bet %s", bet_id
+        )
     return bet
+
+
+async def _notify_participants_winner_declared(
+    db: AsyncSession, bet, winner_label: str
+) -> None:
+    from app.config import settings
+    from app.models.user import User
+    from app.services import email_service
+
+    rows = await db.execute(
+        select(Participation, User)
+        .join(User, User.id == Participation.user_id)
+        .where(
+            Participation.bet_id == bet.id,
+            Participation.user_id != bet.creator_id,
+        )
+    )
+    bet_url = (
+        f"{(settings.APP_URL or '').rstrip('/') or 'http://187.127.25.239'}"
+        f"/bets/{bet.id}"
+    )
+    for _participation, user in rows.all():
+        if not user or not getattr(user, "email", None):
+            continue
+        html, text = email_service.render_winner_declared_participant(
+            name=user.username or "participante",
+            bet_title=bet.title,
+            winner_label=winner_label,
+            bet_url=bet_url,
+        )
+        await email_service.send_email(
+            user.email,
+            f"Resultado declarado — {bet.title}",
+            html,
+            text,
+        )
 
 
 async def _ensure_participant(

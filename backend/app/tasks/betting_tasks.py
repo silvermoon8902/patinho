@@ -7,6 +7,38 @@ from app.celery_app import celery_app
 logger = logging.getLogger(__name__)
 
 
+async def _notify_creator_voting_bet_locked(db, bet) -> None:
+    """Best-effort: email the creator that they need to declare a winner.
+
+    Failures (SMTP down, no email on file) are logged but never block the
+    state transition — the UI banner is the primary signal.
+    """
+    try:
+        from app.config import settings
+        from app.models.user import User
+        from app.services import email_service
+
+        creator = await db.get(User, bet.creator_id)
+        if not creator or not getattr(creator, "email", None):
+            return
+        bet_url = f"{(settings.APP_URL or '').rstrip('/') or 'http://187.127.25.239'}/bets/{bet.id}"
+        html, text = email_service.render_bet_locked_creator(
+            creator_name=creator.username or "criador",
+            bet_title=bet.title,
+            bet_url=bet_url,
+        )
+        await email_service.send_email(
+            creator.email,
+            f"Hora de declarar o vencedor — {bet.title}",
+            html,
+            text,
+        )
+    except Exception:
+        logger.exception(
+            "Failed to send locked-bet reminder to creator of bet %s", bet.id
+        )
+
+
 async def _lock_expired_bets_async() -> int:
     """
     Find open bets past closes_at.
@@ -36,6 +68,7 @@ async def _lock_expired_bets_async() -> int:
 
             logger.info("Locking %d expired open bets", len(bets))
             locked_count = 0
+            voting_locked: list = []
 
             for bet in bets:
                 try:
@@ -44,10 +77,9 @@ async def _lock_expired_bets_async() -> int:
                         locked_count += 1
                         logger.info("Locked sports bet %s", bet.id)
                     elif bet.resolution_type == ResolutionType.VOTING:
-                        # Creator-declared-winner flow: lock first.
-                        # Creator then calls declare-winner endpoint.
                         bet.status = BetStatus.LOCKED
                         locked_count += 1
+                        voting_locked.append(bet)
                         logger.info(
                             "Locked voting bet %s awaiting creator declaration",
                             bet.id,
@@ -57,6 +89,10 @@ async def _lock_expired_bets_async() -> int:
                     continue
 
             await db.commit()
+            # Notifications go out AFTER the commit so a failed SMTP call
+            # cannot rollback the state transition.
+            for bet in voting_locked:
+                await _notify_creator_voting_bet_locked(db, bet)
             logger.info("Processed %d/%d expired bets", locked_count, len(bets))
             return locked_count
         except Exception:

@@ -50,6 +50,13 @@ async def create_deposit(
     db: AsyncSession = Depends(get_db),
 ):
     payment = await payment_service.create_pix_deposit(db, user.id, body.amount)
+    from app.utils import funnel
+    funnel.track(
+        "deposit_initiated",
+        user_id=user.id,
+        amount=str(body.amount),
+        payment_id=str(payment.id),
+    )
     return payment
 
 
