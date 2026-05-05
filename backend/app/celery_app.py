@@ -15,6 +15,11 @@ celery_app.conf.update(
     result_serializer="json",
     timezone="America/Sao_Paulo",
     enable_utc=True,
+    # Worker listens on default,payments,resolution,notifications (see
+    # docker-compose celery_worker command). Without this, beat publishes
+    # tasks to the celery default queue ("celery"), the worker never sees
+    # them, and scheduled jobs (lock_expired_bets, etc.) silently pile up.
+    task_default_queue="default",
     beat_schedule={
         "check_sports_results": {
             "task": "app.tasks.sports.check_sports_results",
