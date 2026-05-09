@@ -80,6 +80,52 @@ def _public_origin(request: Request) -> str:
     return cfg or "http://localhost:5173"
 
 
+@router.get("/leagues/{invite_code}/short-url")
+async def get_league_short_url(
+    invite_code: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_active_user),
+):
+    """HTTPS short URL for joining a league via deep link.
+
+    Same TinyURL fallback strategy as bet invites: WhatsApp won't linkify
+    raw IP URLs, so we proxy through TinyURL while we're on plain HTTP.
+    """
+    from app.models.league import League
+    from app.utils.rate_limit import enforce_user_rate_limit
+
+    await enforce_user_rate_limit(
+        user.id,
+        bucket="share_short_url",
+        limit=60,
+        window_seconds=3600,
+        detail="Muitas requisições de compartilhamento. Aguarde alguns minutos.",
+    )
+
+    league = (
+        await db.execute(select(League).where(League.invite_code == invite_code))
+    ).scalar_one_or_none()
+    if not league:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Liga não encontrada"
+        )
+
+    redis = await _get_redis()
+    cache_key = f"shorturl:league:{invite_code}"
+    cached = await redis.get(cache_key)
+    if cached:
+        return {"short_url": cached, "cached": True}
+
+    long_url = f"{_public_origin(request)}/leagues/join/{invite_code}"
+    short = await _shorten(long_url)
+    if not short:
+        return {"short_url": long_url, "cached": False, "fallback": True}
+
+    await redis.set(cache_key, short, ex=60 * 60 * 24 * 30)
+    return {"short_url": short, "cached": False}
+
+
 @router.get("/bets/invite/{invite_token}/short-url")
 async def get_invite_short_url(
     invite_token: str,

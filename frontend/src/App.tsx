@@ -75,6 +75,7 @@ export default function App() {
           <Route path="/bets/:betId/ranking" element={<TournamentRankingPage />} />
           <Route path="/bets/:betId" element={<BetDetailPage />} />
           <Route path="/leagues" element={<LeaguesListPage />} />
+          <Route path="/leagues/join/:joinCode" element={<LeaguesListPage />} />
           <Route path="/leagues/:leagueId" element={<LeagueDetailPage />} />
           <Route path="/wallet" element={<WalletPage />} />
           <Route path="/ranking" element={<RankingPage />} />

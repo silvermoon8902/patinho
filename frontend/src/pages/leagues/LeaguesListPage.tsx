@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import EmptyState from "@/components/shared/EmptyState";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch, RootState } from "@/store";
 import { fetchMyLeagues } from "@/store/leaguesSlice";
@@ -9,15 +9,23 @@ import JoinByCodeModal from "./JoinByCodeModal";
 
 export default function LeaguesListPage() {
   const dispatch = useDispatch<AppDispatch>();
+  const navigate = useNavigate();
+  const { joinCode } = useParams<{ joinCode?: string }>();
   const { myLeagues, loading, error } = useSelector(
     (state: RootState) => state.leagues
   );
   const [createOpen, setCreateOpen] = useState(false);
-  const [joinOpen, setJoinOpen] = useState(false);
+  const [joinOpen, setJoinOpen] = useState(Boolean(joinCode));
 
   useEffect(() => {
     dispatch(fetchMyLeagues());
   }, [dispatch]);
+
+  // Deep link from a shared league invite (/leagues/join/:code) auto-opens
+  // the modal with the code already filled.
+  useEffect(() => {
+    if (joinCode) setJoinOpen(true);
+  }, [joinCode]);
 
   return (
     <div className="leagues-list-page">
@@ -104,7 +112,16 @@ export default function LeaguesListPage() {
       />
       <JoinByCodeModal
         open={joinOpen}
-        onClose={() => setJoinOpen(false)}
+        initialCode={joinCode}
+        onClose={() => {
+          setJoinOpen(false);
+          // Drop the deep-link slug from the URL after the user closes
+          // so a refresh doesn't pop the modal again.
+          if (joinCode) navigate("/leagues", { replace: true });
+        }}
+        onJoined={(leagueId) => {
+          if (joinCode) navigate(`/leagues/${leagueId}`, { replace: true });
+        }}
       />
     </div>
   );

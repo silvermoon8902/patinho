@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import type { AppDispatch } from "@/store";
 import { joinLeague } from "@/store/leaguesSlice";
@@ -8,13 +8,24 @@ interface Props {
   open: boolean;
   onClose: () => void;
   onJoined?: (leagueId: string) => void;
+  /** When the modal is opened from a deep link, pre-fill the code field. */
+  initialCode?: string;
 }
 
-export default function JoinByCodeModal({ open, onClose, onJoined }: Props) {
+export default function JoinByCodeModal({
+  open,
+  onClose,
+  onJoined,
+  initialCode,
+}: Props) {
   const dispatch = useDispatch<AppDispatch>();
   const { showToast } = useToast();
-  const [code, setCode] = useState("");
+  const [code, setCode] = useState(initialCode ?? "");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (open && initialCode) setCode(initialCode);
+  }, [open, initialCode]);
 
   if (!open) return null;
 
