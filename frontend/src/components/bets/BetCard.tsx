@@ -44,14 +44,16 @@ interface BetCardProps {
 }
 
 export default function BetCard({ bet }: BetCardProps) {
-  const handleShare = async (e: React.MouseEvent) => {
+  const handleShare = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    // Bet cards in lists fire shares straight away with the long URL —
+    // shortening here would block navigator.share on iOS. The detail
+    // page is where users see the TinyURL via its prefetched state.
     const inviteUrl = `${window.location.origin}/invite/${bet.invite_token}`;
-    await shareInvite({
+    void shareInvite({
       title: `Patinho · ${bet.title}`,
       url: inviteUrl,
-      inviteToken: bet.invite_token,
       text: `Você foi convidado para o desafio "${bet.title}" no Patinho! Clique no link para ver as regras e participar:`,
     });
   };

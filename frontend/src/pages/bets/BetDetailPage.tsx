@@ -84,6 +84,9 @@ export default function BetDetailPage() {
   const [activeSection, setActiveSection] = useState<"details" | "chat">("details");
   const [linkCopied, setLinkCopied] = useState(false);
   const [emailInviteOpen, setEmailInviteOpen] = useState(false);
+  // Prefetched share URL — populated on bet load so the WhatsApp click
+  // is synchronous (iOS Safari needs that for navigator.share to fire).
+  const [shareUrl, setShareUrl] = useState<string>("");
 
   const navigate = useNavigate();
   const { showToast } = useToast();
@@ -100,6 +103,23 @@ export default function BetDetailPage() {
       dispatch(clearBetError());
     };
   }, [dispatch, betId]);
+
+  // Prefetch the TinyURL once the bet (and its invite_token) is loaded.
+  // Keeps the WhatsApp click handler purely synchronous on iOS Safari.
+  useEffect(() => {
+    if (!currentBet?.invite_token) return;
+    let cancelled = false;
+    const longUrl = `${window.location.origin}/invite/${currentBet.invite_token}`;
+    // Seed with the long URL so the button is usable even if the
+    // shortener is slow / fails. Real value updates when fetched.
+    setShareUrl(longUrl);
+    getShortInviteUrl(currentBet.invite_token, longUrl).then((u) => {
+      if (!cancelled) setShareUrl(u);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [currentBet?.invite_token]);
 
   useEffect(() => {
     if (error) {
@@ -200,24 +220,22 @@ export default function BetDetailPage() {
     return `${window.location.origin}/invite/${currentBet.invite_token}`;
   };
 
-  const handleShareWhatsApp = async () => {
+  const handleShareWhatsApp = () => {
     if (!currentBet) return;
-    const inviteUrl = getInviteUrl();
     const text = `Você foi convidado para o desafio "${currentBet.title}" no Patinho! Clique no link para ver as regras e participar:`;
-    await shareInvite({
+    // Fire synchronously — using the prefetched shareUrl (or the long URL
+    // fallback if the prefetch hasn't completed yet). Awaiting here would
+    // break navigator.share on iOS Safari.
+    void shareInvite({
       title: `Patinho · ${currentBet.title}`,
-      url: inviteUrl,
-      inviteToken: currentBet.invite_token,
+      url: shareUrl || getInviteUrl(),
       text,
     });
   };
 
   const handleCopyInviteLink = async () => {
     if (!currentBet) return;
-    // Copy the short HTTPS URL when we can — that's what makes the link
-    // clickable in the recipient's WhatsApp instead of plain text.
-    const url = await getShortInviteUrl(currentBet.invite_token, getInviteUrl());
-    const ok = await copyToClipboard(url);
+    const ok = await copyToClipboard(shareUrl || getInviteUrl());
     if (!ok) return;
     setLinkCopied(true);
     setTimeout(() => setLinkCopied(false), 2000);

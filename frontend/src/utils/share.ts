@@ -13,9 +13,13 @@ import apiClient from "@/api/client";
 
 type ShareInviteInput = {
   title: string;
+  /**
+   * The shareable URL — already resolved by the caller. Components should
+   * prefetch the short URL on mount and pass it here so the share-button
+   * click stays synchronous (iOS Safari revokes the "user activation
+   * context" if you await anything before calling navigator.share).
+   */
   url: string;
-  /** Bet invite token, used to fetch the cached short URL. */
-  inviteToken?: string;
   /** Message body used ONLY for the desktop fallback text=... URL. */
   text: string;
 };
@@ -40,25 +44,24 @@ export async function getShortInviteUrl(
 export type ShareOutcome = "native" | "whatsapp_intent" | "cancelled" | "error";
 
 export async function shareInvite(input: ShareInviteInput): Promise<ShareOutcome> {
-  const { title, url, text, inviteToken } = input;
+  const { title, url, text } = input;
 
-  const linkUrl = inviteToken ? await getShortInviteUrl(inviteToken, url) : url;
-
-  // Prefer the native share sheet on mobile — passing `url` separately is
-  // what makes WhatsApp render a link preview instead of plain text.
+  // CRITICAL: do not `await` anything before navigator.share — iOS Safari
+  // revokes the user-activation grant if any async work happens between
+  // the click handler firing and the share call, and silently no-ops.
+  // The caller MUST resolve the short URL ahead of time and pass it in.
   if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
     try {
-      await navigator.share({ title, text, url: linkUrl });
+      await navigator.share({ title, text, url });
       return "native";
     } catch (err) {
-      // User dismissed the sheet — AbortError is expected, no toast.
       if ((err as DOMException)?.name === "AbortError") return "cancelled";
       // Anything else: fall through to the WhatsApp web intent.
     }
   }
 
   try {
-    const body = `${text}\n\n${linkUrl}`;
+    const body = `${text}\n\n${url}`;
     const intent = `https://api.whatsapp.com/send?text=${encodeURIComponent(body)}`;
     window.open(intent, "_blank", "noopener,noreferrer");
     return "whatsapp_intent";

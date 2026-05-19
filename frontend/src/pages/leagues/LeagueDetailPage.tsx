@@ -34,6 +34,9 @@ export default function LeagueDetailPage() {
 
   const [activeTab, setActiveTab] = useState<TabKey>("members");
   const [inviteOpen, setInviteOpen] = useState(false);
+  // Prefetched share URL — populated on league load so the WhatsApp
+  // click is synchronous (iOS Safari requires that for navigator.share).
+  const [shareUrl, setShareUrl] = useState<string>("");
 
   useEffect(() => {
     if (!leagueId) return;
@@ -42,6 +45,27 @@ export default function LeagueDetailPage() {
       dispatch(clearCurrentLeague());
     };
   }, [dispatch, leagueId]);
+
+  useEffect(() => {
+    const code = currentLeague?.invite_code;
+    if (!code) return;
+    let cancelled = false;
+    const long = `${window.location.origin}/leagues/join/${code}`;
+    setShareUrl(long);
+    apiClient
+      .get(`/leagues/${code}/short-url`, { timeout: 4000 })
+      .then((r) => {
+        if (cancelled) return;
+        const u = r.data?.short_url;
+        if (typeof u === "string" && u) setShareUrl(u);
+      })
+      .catch(() => {
+        /* keep the long-url fallback */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [currentLeague?.invite_code]);
 
   useEffect(() => {
     if (!leagueId) return;
@@ -58,34 +82,19 @@ export default function LeagueDetailPage() {
     showToast(ok ? "Código copiado" : "Não foi possível copiar", ok ? "success" : "error");
   };
 
-  /** Resolve the shareable join URL — short HTTPS via backend if available,
-   *  long IP URL as fallback. */
-  const getShareUrl = async (code: string): Promise<string> => {
-    const long = `${window.location.origin}/leagues/join/${code}`;
-    try {
-      const res = await apiClient.get(`/leagues/${code}/short-url`, {
-        timeout: 4000,
-      });
-      const u = res.data?.short_url;
-      return typeof u === "string" && u ? u : long;
-    } catch {
-      return long;
-    }
-  };
-
   const handleCopyLink = async () => {
     if (!currentLeague) return;
-    const url = await getShareUrl(currentLeague.invite_code);
-    const ok = await copyToClipboard(url);
+    const ok = await copyToClipboard(shareUrl);
     showToast(ok ? "Link copiado" : "Não foi possível copiar", ok ? "success" : "error");
   };
 
-  const handleShareWhatsApp = async () => {
-    if (!currentLeague) return;
-    const url = await getShareUrl(currentLeague.invite_code);
-    await shareInvite({
+  const handleShareWhatsApp = () => {
+    if (!currentLeague || !shareUrl) return;
+    // Fire synchronously — using the prefetched shareUrl. Any await here
+    // would break navigator.share on iOS Safari.
+    void shareInvite({
       title: `Patinho · Liga ${currentLeague.name}`,
-      url,
+      url: shareUrl,
       text: `Entre na liga "${currentLeague.name}" no Patinho! Toque no link para participar:`,
     });
   };
