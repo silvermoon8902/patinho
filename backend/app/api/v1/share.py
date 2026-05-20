@@ -1,22 +1,22 @@
 """
-Invite-link shortener.
+Shareable invite links.
 
-WhatsApp's anti-phishing refuses to auto-linkify raw IPv4 URLs over plain
-HTTP (e.g. http://187.127.25.239/invite/abc), so the message arrives as
-plain text. While the deployment is on a bare IP, we proxy through
-TinyURL to get an HTTPS short URL that WhatsApp DOES linkify. (is.gd was
-the first choice but blocks IP-host shortening as anti-abuse.)
+WhatsApp's anti-phishing refuses to auto-linkify raw IPv4 URLs (e.g.
+http://187.127.25.239/invite/abc) — they arrive as plain text. The fix is
+to hand out a URL with a real *hostname*: PUBLIC_BASE_URL points at a
+sslip.io wildcard-DNS name (187-127-25-239.sslip.io) that resolves to the
+same IP. WhatsApp linkifies it because it ends in a real TLD.
 
-Once the app moves to a real HTTPS domain this endpoint becomes redundant
-and can be retired (or kept as a vanity shortener).
+No third-party shortener is involved — earlier we proxied through TinyURL
+but it started showing a "preview" interstitial for IP-backed links.
+Once a real domain is purchased, just point PUBLIC_BASE_URL at it.
 """
 from __future__ import annotations
 
 import logging
 
-import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from redis.asyncio import Redis
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
@@ -24,85 +24,29 @@ from app.database import get_db
 from app.models.bet import Bet
 from app.models.user import User
 from app.services.auth_service import get_current_active_user
-from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["share"])
 
-_redis_client: Redis | None = None
-
-
-async def _get_redis() -> Redis:
-    global _redis_client
-    if _redis_client is None:
-        _redis_client = Redis.from_url(settings.REDIS_URL, decode_responses=True)
-    return _redis_client
-
-
-def _alias_for(prefix: str, token: str) -> str:
-    """Deterministic, URL-safe alias for a TinyURL.
-
-    Custom-aliased TinyURLs bypass the "preview" interstitial that the
-    service eventually slaps on auto-generated short URLs that point at
-    raw-IP destinations. Using a deterministic alias also makes the call
-    idempotent — repeated shortens of the same long_url return the same
-    short URL without creating a new one.
-    """
-    safe = "".join(c for c in (token or "") if c.isalnum())[:20]
-    return f"{prefix}-{safe}" if safe else prefix
-
-
-async def _shorten(long_url: str, alias: str | None = None) -> str | None:
-    """Call TinyURL's free shortener. ~150ms typical, 5s hard timeout.
-
-    When an alias is provided we try it first; if TinyURL rejects (e.g.
-    the alias collides with a different destination), we fall back to an
-    auto-generated short URL.
-    """
-    async def _attempt(params: dict) -> str | None:
-        try:
-            async with httpx.AsyncClient(timeout=5.0) as client:
-                resp = await client.get(
-                    "https://tinyurl.com/api-create.php",
-                    params=params,
-                )
-            if resp.status_code != 200:
-                logger.warning(
-                    "tinyurl shorten failed: %s %s",
-                    resp.status_code,
-                    resp.text[:80],
-                )
-                return None
-            text = (resp.text or "").strip()
-            if not text.startswith("https://tinyurl.com/"):
-                logger.warning("tinyurl returned unexpected body: %s", text[:120])
-                return None
-            return text
-        except Exception:
-            logger.exception("tinyurl shorten exception")
-            return None
-
-    if alias:
-        result = await _attempt({"url": long_url, "alias": alias})
-        if result:
-            return result
-        # Alias may have collided with a pre-existing one for a different
-        # destination. Retry without it so we still hand back a short URL.
-    return await _attempt({"url": long_url})
-
 
 def _public_origin(request: Request) -> str:
-    """Best public-facing origin for invite URLs.
+    """Public-facing origin for invite URLs.
 
-    Prefers the explicit APP_URL setting, falls back to the request's
-    forwarded host so the shortener still works when the env var is
-    unset on the VPS.
+    Order of preference:
+      1. PUBLIC_BASE_URL (the sslip.io host, or the real domain later)
+      2. APP_URL, if it's been set to something non-local
+      3. the request's forwarded host (last-resort fallback)
     """
+    base = (settings.PUBLIC_BASE_URL or "").rstrip("/")
+    if base:
+        return base
     cfg = (settings.APP_URL or "").rstrip("/")
     if cfg and not cfg.startswith("http://localhost"):
         return cfg
-    forwarded_host = request.headers.get("x-forwarded-host") or request.headers.get("host")
+    forwarded_host = (
+        request.headers.get("x-forwarded-host") or request.headers.get("host")
+    )
     forwarded_proto = request.headers.get("x-forwarded-proto") or "http"
     if forwarded_host:
         return f"{forwarded_proto}://{forwarded_host}"
@@ -116,21 +60,8 @@ async def get_league_short_url(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_active_user),
 ):
-    """HTTPS short URL for joining a league via deep link.
-
-    Same TinyURL fallback strategy as bet invites: WhatsApp won't linkify
-    raw IP URLs, so we proxy through TinyURL while we're on plain HTTP.
-    """
+    """Shareable join URL for a league (deep link that pre-fills the code)."""
     from app.models.league import League
-    from app.utils.rate_limit import enforce_user_rate_limit
-
-    await enforce_user_rate_limit(
-        user.id,
-        bucket="share_short_url",
-        limit=60,
-        window_seconds=3600,
-        detail="Muitas requisições de compartilhamento. Aguarde alguns minutos.",
-    )
 
     league = (
         await db.execute(select(League).where(League.invite_code == invite_code))
@@ -139,20 +70,10 @@ async def get_league_short_url(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Liga não encontrada"
         )
-
-    redis = await _get_redis()
-    cache_key = f"shorturl:league:{invite_code}"
-    cached = await redis.get(cache_key)
-    if cached:
-        return {"short_url": cached, "cached": True}
-
-    long_url = f"{_public_origin(request)}/leagues/join/{invite_code}"
-    short = await _shorten(long_url, alias=_alias_for("patliga", invite_code))
-    if not short:
-        return {"short_url": long_url, "cached": False, "fallback": True}
-
-    await redis.set(cache_key, short, ex=60 * 60 * 24 * 30)
-    return {"short_url": short, "cached": False}
+    return {
+        "short_url": f"{_public_origin(request)}/leagues/join/{invite_code}",
+        "cached": False,
+    }
 
 
 @router.get("/bets/invite/{invite_token}/short-url")
@@ -162,24 +83,7 @@ async def get_invite_short_url(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_active_user),
 ):
-    from app.utils.rate_limit import enforce_user_rate_limit
-
-    # Cap how often a single user can ask us to mint short URLs. Cached
-    # hits are unaffected because the cache check happens after this
-    # gate; the gate itself just prevents flooding TinyURL.
-    await enforce_user_rate_limit(
-        user.id,
-        bucket="share_short_url",
-        limit=60,
-        window_seconds=3600,
-        detail="Muitas requisições de compartilhamento. Aguarde alguns minutos.",
-    )
-    """Return an HTTPS short URL for the given bet invite.
-
-    Cached per invite_token for 30 days (is.gd links don't expire).
-    Authenticated only — the token is sensitive enough to not want it in
-    plain logs of an unauthenticated handler.
-    """
+    """Shareable invite URL for a bet."""
     bet = (
         await db.execute(select(Bet).where(Bet.invite_token == invite_token))
     ).scalar_one_or_none()
@@ -187,17 +91,7 @@ async def get_invite_short_url(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Convite não encontrado"
         )
-
-    redis = await _get_redis()
-    cache_key = f"shorturl:invite:{invite_token}"
-    cached = await redis.get(cache_key)
-    if cached:
-        return {"short_url": cached, "cached": True}
-
-    long_url = f"{_public_origin(request)}/invite/{invite_token}"
-    short = await _shorten(long_url, alias=_alias_for("patapt", invite_token))
-    if not short:
-        return {"short_url": long_url, "cached": False, "fallback": True}
-
-    await redis.set(cache_key, short, ex=60 * 60 * 24 * 30)
-    return {"short_url": short, "cached": False}
+    return {
+        "short_url": f"{_public_origin(request)}/invite/{invite_token}",
+        "cached": False,
+    }
