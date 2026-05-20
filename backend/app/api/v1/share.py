@@ -40,27 +40,56 @@ async def _get_redis() -> Redis:
     return _redis_client
 
 
-async def _shorten(long_url: str) -> str | None:
-    """Call TinyURL's free shortener (no auth needed). ~150ms typical."""
-    try:
-        async with httpx.AsyncClient(timeout=5.0) as client:
-            resp = await client.get(
-                "https://tinyurl.com/api-create.php",
-                params={"url": long_url},
-            )
-        if resp.status_code != 200:
-            logger.warning(
-                "tinyurl shorten failed: %s %s", resp.status_code, resp.text[:80]
-            )
+def _alias_for(prefix: str, token: str) -> str:
+    """Deterministic, URL-safe alias for a TinyURL.
+
+    Custom-aliased TinyURLs bypass the "preview" interstitial that the
+    service eventually slaps on auto-generated short URLs that point at
+    raw-IP destinations. Using a deterministic alias also makes the call
+    idempotent — repeated shortens of the same long_url return the same
+    short URL without creating a new one.
+    """
+    safe = "".join(c for c in (token or "") if c.isalnum())[:20]
+    return f"{prefix}-{safe}" if safe else prefix
+
+
+async def _shorten(long_url: str, alias: str | None = None) -> str | None:
+    """Call TinyURL's free shortener. ~150ms typical, 5s hard timeout.
+
+    When an alias is provided we try it first; if TinyURL rejects (e.g.
+    the alias collides with a different destination), we fall back to an
+    auto-generated short URL.
+    """
+    async def _attempt(params: dict) -> str | None:
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                resp = await client.get(
+                    "https://tinyurl.com/api-create.php",
+                    params=params,
+                )
+            if resp.status_code != 200:
+                logger.warning(
+                    "tinyurl shorten failed: %s %s",
+                    resp.status_code,
+                    resp.text[:80],
+                )
+                return None
+            text = (resp.text or "").strip()
+            if not text.startswith("https://tinyurl.com/"):
+                logger.warning("tinyurl returned unexpected body: %s", text[:120])
+                return None
+            return text
+        except Exception:
+            logger.exception("tinyurl shorten exception")
             return None
-        text = (resp.text or "").strip()
-        if not text.startswith("https://tinyurl.com/"):
-            logger.warning("tinyurl returned unexpected body: %s", text[:120])
-            return None
-        return text
-    except Exception:
-        logger.exception("tinyurl shorten exception")
-        return None
+
+    if alias:
+        result = await _attempt({"url": long_url, "alias": alias})
+        if result:
+            return result
+        # Alias may have collided with a pre-existing one for a different
+        # destination. Retry without it so we still hand back a short URL.
+    return await _attempt({"url": long_url})
 
 
 def _public_origin(request: Request) -> str:
@@ -118,7 +147,7 @@ async def get_league_short_url(
         return {"short_url": cached, "cached": True}
 
     long_url = f"{_public_origin(request)}/leagues/join/{invite_code}"
-    short = await _shorten(long_url)
+    short = await _shorten(long_url, alias=_alias_for("patliga", invite_code))
     if not short:
         return {"short_url": long_url, "cached": False, "fallback": True}
 
@@ -166,7 +195,7 @@ async def get_invite_short_url(
         return {"short_url": cached, "cached": True}
 
     long_url = f"{_public_origin(request)}/invite/{invite_token}"
-    short = await _shorten(long_url)
+    short = await _shorten(long_url, alias=_alias_for("patapt", invite_token))
     if not short:
         return {"short_url": long_url, "cached": False, "fallback": True}
 

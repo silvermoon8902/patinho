@@ -8,8 +8,11 @@ function readTheme(): Theme {
   if (typeof window === "undefined") return "light";
   const stored = localStorage.getItem(STORAGE_KEY) as Theme | null;
   if (stored === "light" || stored === "dark") return stored;
-  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-  return prefersDark ? "dark" : "light";
+  // Default to light explicitly — dark mode currently has contrast gaps
+  // on a few screens (Bolão CTA on bet creation, etc.) that we'll polish
+  // before respecting prefers-color-scheme again. Users can still flip
+  // to dark via the toggle in the header.
+  return "light";
 }
 
 function applyTheme(theme: Theme) {
