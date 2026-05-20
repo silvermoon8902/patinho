@@ -1,15 +1,25 @@
 /**
  * Share an invite link.
  *
- * Why this helper exists: WhatsApp does NOT auto-linkify URLs that use raw
- * IPv4 addresses (e.g. http://187.127.25.239/invite/abc). It treats them
- * as plain text. To make the link clickable in the recipient's WhatsApp
- * we route through the backend's is.gd shortener which returns an HTTPS
- * short URL that WhatsApp WILL linkify even when the underlying app is on
- * plain HTTP. Once the app moves to HTTPS + a real domain this hop can
- * be retired.
+ * On mobile we use the native Web Share sheet (navigator.share) — it lets
+ * the user pick WhatsApp and attaches the URL as a real link. On desktop
+ * we deliberately SKIP navigator.share: desktop browsers (especially on
+ * Linux) open an empty/stuck OS "Share" panel. Desktop goes straight to
+ * the WhatsApp Web intent instead.
  */
 import apiClient from "@/api/client";
+
+/** True for phones/tablets, where navigator.share is reliable. */
+function isMobileDevice(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const uaData = (navigator as Navigator & {
+    userAgentData?: { mobile?: boolean };
+  }).userAgentData;
+  if (uaData && typeof uaData.mobile === "boolean") return uaData.mobile;
+  return /Android|iPhone|iPad|iPod|Mobile|Windows Phone/i.test(
+    navigator.userAgent || "",
+  );
+}
 
 type ShareInviteInput = {
   title: string;
@@ -46,11 +56,17 @@ export type ShareOutcome = "native" | "whatsapp_intent" | "cancelled" | "error";
 export async function shareInvite(input: ShareInviteInput): Promise<ShareOutcome> {
   const { title, url, text } = input;
 
+  // Native share sheet — ONLY on mobile. On desktop navigator.share may
+  // exist but opens a broken/empty OS panel, so we skip it there.
   // CRITICAL: do not `await` anything before navigator.share — iOS Safari
   // revokes the user-activation grant if any async work happens between
-  // the click handler firing and the share call, and silently no-ops.
-  // The caller MUST resolve the short URL ahead of time and pass it in.
-  if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+  // the click handler firing and the share call. The caller resolves the
+  // share URL ahead of time and passes it in already-resolved.
+  if (
+    isMobileDevice() &&
+    typeof navigator !== "undefined" &&
+    typeof navigator.share === "function"
+  ) {
     try {
       await navigator.share({ title, text, url });
       return "native";
