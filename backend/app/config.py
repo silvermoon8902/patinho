@@ -35,12 +35,11 @@ class Settings(BaseSettings):
     SMTP_FROM_NAME: str = "Patinho"
     SMTP_USE_TLS: bool = True
     APP_URL: str = "http://localhost:5173"
-    # Public base used to build shareable invite links. sslip.io is a free
-    # wildcard-DNS service that maps 187-127-25-239.sslip.io -> the IP, so
-    # the link has a real domain shape and WhatsApp auto-linkifies it
-    # (raw-IP URLs are never linkified). Swap this for the real domain
-    # once it's purchased.
-    PUBLIC_BASE_URL: str = "http://187-127-25-239.sslip.io"
+    # Public base used to build shareable invite links and email links.
+    # Currently a free duckdns.org subdomain with a Let's Encrypt cert —
+    # gives a real HTTPS origin so WhatsApp linkifies invites and the
+    # browser shows the padlock. Swap for the real domain once purchased.
+    PUBLIC_BASE_URL: str = "https://patinho-test.duckdns.org"
     TERMS_VERSION: str = "v1"
     SENTRY_DSN: str = ""
     SENTRY_TRACES_SAMPLE_RATE: float = 0.05
