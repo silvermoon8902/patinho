@@ -22,7 +22,7 @@ async def resolve_sports_bet(db: AsyncSession, bet_id: UUID) -> bool:
     Returns True if resolved, False if not yet finished.
     """
     from app.integrations.api_f1 import api_f1_client
-    from app.integrations.api_football import api_football_client
+    from app.integrations.api_futebol import api_futebol_client
     from app.integrations.api_tennis import api_tennis_client
 
     bet = await db.get(Bet, bet_id)
@@ -49,7 +49,7 @@ async def resolve_sports_bet(db: AsyncSession, bet_id: UUID) -> bool:
     template = bet.template or "match_winner"
 
     if template == "match_winner":
-        fixture_result = await api_football_client.get_fixture_result(
+        fixture_result = await api_futebol_client.get_fixture_result(
             bet.sports_match_id
         )
         if fixture_result is None:
@@ -87,7 +87,7 @@ async def resolve_sports_bet(db: AsyncSession, bet_id: UUID) -> bool:
         return True
 
     if template == "exact_score":
-        fixture_result = await api_football_client.get_fixture_result(
+        fixture_result = await api_futebol_client.get_fixture_result(
             bet.sports_match_id
         )
         if fixture_result is None:

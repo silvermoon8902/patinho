@@ -5,13 +5,9 @@ from fastapi import APIRouter, Query, Response
 
 from app.config import settings
 from app.integrations.api_f1 import api_f1_client
-from app.integrations.api_football import (
-    SUPPORTED_LEAGUES,
-    api_football_client,
-)
+from app.integrations.api_futebol import api_futebol_client
 from app.integrations.api_tennis import api_tennis_client
 from app.schemas.sports import (
-    LEAGUE_LABELS,
     DriverOption,
     FixtureResponse,
     LeagueResponse,
@@ -26,15 +22,23 @@ router = APIRouter(tags=["sports"])
 
 @router.get("/leagues", response_model=list[LeagueResponse])
 async def list_leagues() -> list[LeagueResponse]:
-    """Return the list of supported leagues with display labels."""
-    return [
-        LeagueResponse(
-            id=key,
-            name=LEAGUE_LABELS.get(key, key),
-            api_id=api_id,
-        )
-        for key, api_id in SUPPORTED_LEAGUES.items()
-    ]
+    """Return the championships the current api-futebol plan covers.
+
+    The list is dynamic per API key — upgrading the plan adds more
+    championships without any code/deploy change. During the trial only
+    Série B shows up; on a paid plan the wider list (Série A, Copa do
+    Mundo 2026, Champions, Premier, …) appears here.
+    """
+    champs = await api_futebol_client.list_championships()
+    out: list[LeagueResponse] = []
+    for c in champs:
+        cid = c.get("campeonato_id")
+        slug = c.get("slug") or (str(cid) if cid is not None else "")
+        name = c.get("nome_popular") or c.get("nome") or slug
+        if cid is None or not slug:
+            continue
+        out.append(LeagueResponse(id=slug, name=name, api_id=int(cid)))
+    return out
 
 
 @router.get(
@@ -57,17 +61,29 @@ async def list_league_fixtures(
     Reasons: ok · unknown_league · api_key_missing · upstream_error ·
              no_matches_scheduled
     """
-    api_id = SUPPORTED_LEAGUES.get(league_id)
+    if not (settings.API_FUTEBOL_KEY or "").strip():
+        response.headers["X-Sports-Reason"] = "api_key_missing"
+        return []
+
+    # league_id is the championship slug returned by /sports/leagues.
+    # Resolve it back to the api-futebol campeonato_id.
+    api_id: int | None = None
+    try:
+        champs = await api_futebol_client.list_championships()
+    except Exception:
+        logger.exception("Failed to list championships")
+        response.headers["X-Sports-Reason"] = "upstream_error"
+        return []
+    for c in champs:
+        if c.get("slug") == league_id or str(c.get("campeonato_id")) == league_id:
+            api_id = c.get("campeonato_id")
+            break
     if api_id is None:
         response.headers["X-Sports-Reason"] = "unknown_league"
         return []
 
-    if not (settings.API_FOOTBALL_KEY or "").strip():
-        response.headers["X-Sports-Reason"] = "api_key_missing"
-        return []
-
     try:
-        raw_fixtures, tag = await api_football_client.list_upcoming_fixtures(
+        raw_fixtures, tag = await api_futebol_client.list_upcoming_fixtures(
             api_id, season
         )
     except Exception:

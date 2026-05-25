@@ -22,7 +22,7 @@ async def _check_tournament_matches_async() -> int:
     from sqlalchemy import select
 
     from app.database import async_session_maker
-    from app.integrations.api_football import api_football_client
+    from app.integrations.api_futebol import api_futebol_client
     from app.models.bet_template import BetTemplate
     from app.models.tournament import TournamentBet, TournamentPalpite
     from app.services import tournament_service
@@ -52,7 +52,7 @@ async def _check_tournament_matches_async() -> int:
                 # Query results one-by-one (API-Football free tier limitation)
                 for fid in fixture_ids:
                     try:
-                        result = await api_football_client.get_fixture_result(fid)
+                        result = await api_futebol_client.get_fixture_result(fid)
                     except Exception:
                         logger.exception("Fixture %s fetch failed", fid)
                         continue

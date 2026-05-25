@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.database import get_db
 from app.integrations.api_f1 import api_f1_client
-from app.integrations.api_football import api_football_client
+from app.integrations.api_futebol import api_futebol_client
 from app.integrations.api_tennis import api_tennis_client
 from app.models.bet import Bet
 from app.models.league_membership import LeagueMembership
@@ -157,11 +157,11 @@ async def create_sport_bet(
                 detail="É necessário escolher uma partida",
             )
 
-        fixtures = await api_football_client.get_fixtures([data.fixture_id])
+        fixtures = await api_futebol_client.get_fixtures([data.fixture_id])
         if not fixtures:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Partida não encontrada no API-Football",
+                detail="Partida não encontrada",
             )
 
         raw = fixtures[0]

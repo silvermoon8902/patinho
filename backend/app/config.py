@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     MERCADO_PAGO_SIMULATED: bool = False
 
     API_FOOTBALL_KEY: str = ""
+    # api-futebol.com.br token. Replaces api-football for Brazilian
+    # championships. Empty during local dev → integration returns no data.
+    API_FUTEBOL_KEY: str = ""
 
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7

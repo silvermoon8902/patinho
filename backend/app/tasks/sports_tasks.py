@@ -14,7 +14,7 @@ async def _check_sports_results_async() -> int:
     from sqlalchemy import select
 
     from app.database import async_session_maker
-    from app.integrations.api_football import api_football_client
+    from app.integrations.api_futebol import api_futebol_client
     from app.models.bet import Bet, BetStatus, ResolutionType
     from app.services.resolution_service import resolve_sports_bet
 
@@ -36,11 +36,10 @@ async def _check_sports_results_async() -> int:
 
             logger.info("Checking %d locked sports bets", len(bets))
 
-            # Batch fetch fixture results
+            # Batch pre-warm the fixture cache
             fixture_ids = [b.sports_match_id for b in bets if b.sports_match_id]
             if fixture_ids:
-                # Pre-warm cache with batch request
-                await api_football_client.get_fixtures(fixture_ids)
+                await api_futebol_client.get_fixtures(fixture_ids)
 
             resolved_count = 0
             for bet in bets:
